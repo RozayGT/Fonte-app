@@ -1021,7 +1021,7 @@ function computeStreak(nutritionHistory, today) {
 }
 // Numero de version affiche en bas de l'ecran Profil. Sert a verifier d'un coup
 // d'oeil que la derniere mise a jour a bien ete prise en compte par l'iPhone.
-const APP_VERSION = "1.7";
+const APP_VERSION = "1.8";
 const MEAL_REMINDER_HOURS = {
   "petit-dej": 11,
   "dejeuner": 14,
@@ -2551,10 +2551,30 @@ function checkForUpdate() {
     .catch(function () { /* hors ligne : on ne derange pas l'utilisateur */ });
 }
 
+// Le service worker n'etait enregistre qu'au moment d'activer les notifications.
+// Or c'est lui qui force le rechargement de la page depuis le reseau : il doit
+// donc etre en place des le demarrage, notifications ou pas.
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+  navigator.serviceWorker.register("./sw.js").then(function (reg) {
+    // Demande a iOS de verifier si une nouvelle version du worker existe.
+    if (reg && reg.update) { try { reg.update(); } catch (e) {} }
+  }).catch(function () {});
+}
+
+registerServiceWorker();
+
 setTimeout(checkForUpdate, 2500);
 // Nouvelle verification a chaque retour dans l'app.
 document.addEventListener("visibilitychange", function () {
-  if (!document.hidden) checkForUpdate();
+  if (!document.hidden) {
+    checkForUpdate();
+    if ("serviceWorker" in navigator && navigator.serviceWorker.getRegistration) {
+      navigator.serviceWorker.getRegistration().then(function (reg) {
+        if (reg && reg.update) { try { reg.update(); } catch (e) {} }
+      }).catch(function () {});
+    }
+  }
 });
 </script>
 </body>
