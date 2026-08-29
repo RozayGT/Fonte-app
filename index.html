@@ -164,6 +164,7 @@ const GlobalStyle = () => /* @__PURE__ */ React.createElement("style", null, `
 
     *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
     html,body{margin:0; padding:0; background:var(--bg); height:100%; overflow:hidden;}
+    #root{height:100%;}
     .fonte-root{
       font-family:'Inter',ui-sans-serif,system-ui,sans-serif;
       background:var(--bg);
@@ -1018,7 +1019,7 @@ function computeStreak(nutritionHistory, today) {
 }
 // Numero de version affiche en bas de l'ecran Profil. Sert a verifier d'un coup
 // d'oeil que la derniere mise a jour a bien ete prise en compte par l'iPhone.
-const APP_VERSION = "1.5";
+const APP_VERSION = "1.6";
 const MEAL_REMINDER_HOURS = {
   "petit-dej": 11,
   "dejeuner": 14,
