@@ -339,6 +339,46 @@ const GlobalStyle = () => /* @__PURE__ */ React.createElement("style", null, `
     .bar-fill.fat{background:var(--rust);}
     .bar-fill.over{background:var(--rust) !important;}
 
+    /* ---------- guide : cartes glissables au doigt ---------- */
+    .guide-deck{
+      display:flex;
+      overflow-x:auto; overflow-y:hidden;
+      scroll-snap-type:x mandatory;
+      -webkit-overflow-scrolling:touch;
+      scrollbar-width:none;
+      margin:0 -16px;
+    }
+    .guide-deck::-webkit-scrollbar{display:none;}
+    .guide-card{
+      flex:0 0 100%;
+      scroll-snap-align:center;
+      scroll-snap-stop:always;
+      padding:2px 16px 4px;
+      max-height:56vh; overflow-y:auto;
+      -webkit-overflow-scrolling:touch;
+    }
+    .guide-num{
+      font-family:'Bebas Neue',ui-sans-serif,sans-serif;
+      font-size:52px; line-height:0.85; color:var(--surface-3);
+      letter-spacing:0.02em; margin-bottom:2px;
+    }
+    .guide-h{font-size:17px; font-weight:700; margin:0 0 10px; line-height:1.25;}
+    .guide-p{font-size:13.5px; line-height:1.6; color:var(--text-dim); margin:0 0 12px;}
+    .guide-p b{color:var(--text); font-weight:600;}
+    .guide-list{margin:0 0 12px; padding:0; list-style:none;}
+    .guide-list li{
+      position:relative; padding-left:16px; margin-bottom:8px;
+      font-size:13.5px; line-height:1.55; color:var(--text-dim);
+    }
+    .guide-list li::before{
+      content:""; position:absolute; left:0; top:8px;
+      width:5px; height:5px; border-radius:50%; background:var(--brass);
+    }
+    .guide-list li b{color:var(--text); font-weight:600;}
+    .guide-ticks{display:flex; gap:4px; margin:12px 0 2px;}
+    .guide-tick{flex:1; height:3px; border-radius:2px; background:var(--border); transition:background .22s;}
+    .guide-tick.on{background:var(--brass);}
+
     /* ---------- interrupteur ---------- */
     .switch{
       width:46px; height:27px; border-radius:999px; flex-shrink:0; cursor:pointer;
@@ -977,7 +1017,7 @@ function computeStreak(nutritionHistory, today) {
 }
 // Numero de version affiche en bas de l'ecran Profil. Sert a verifier d'un coup
 // d'oeil que la derniere mise a jour a bien ete prise en compte par l'iPhone.
-const APP_VERSION = "1.1";
+const APP_VERSION = "1.3";
 const MEAL_REMINDER_HOURS = {
   "petit-dej": 11,
   "dejeuner": 14,
@@ -1852,6 +1892,161 @@ function ProgressScreen() {
 function MacroSplitBar({ proteinPct, carbsPct, fatPct }) {
   return /* @__PURE__ */ React.createElement("div", { className: "bar-track", style: { display: "flex", height: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { width: `${proteinPct}%`, background: "var(--brass)" } }), /* @__PURE__ */ React.createElement("div", { style: { width: `${carbsPct}%`, background: "var(--steel)" } }), /* @__PURE__ */ React.createElement("div", { style: { width: `${fatPct}%`, background: "var(--rust)" } }));
 }
+// ---------------------------------------------------------------------------
+// Guide d'utilisation : cartes que l'on fait defiler au doigt. Accessible a
+// tout moment depuis Profil > Guide d'utilisation.
+// ---------------------------------------------------------------------------
+const GUIDE_PAGES = [
+  {
+    title: "Bienvenue dans FONTE",
+    body: "FONTE suit ce que tu manges et le compare \u00E0 des objectifs calcul\u00E9s sur ton corps et ton objectif. Ce guide fait le tour des fonctions en quelques \u00E9crans.",
+    items: [
+      "Glisse vers la gauche pour avancer.",
+      "Tu peux le rouvrir quand tu veux depuis le Profil."
+    ]
+  },
+  {
+    title: "Accueil : ta journ\u00E9e",
+    body: "Le premier \u00E9cran r\u00E9sume o\u00F9 tu en es aujourd'hui.",
+    items: [
+      "<b>Calories restantes</b> et les trois barres prot\u00E9ines, glucides, lipides.",
+      "<b>Jour d'entra\u00EEnement / repos</b> : le bouton en haut bascule le jour et ajuste les objectifs.",
+      "<b>Ajout rapide</b> : les aliments que tu loggues le plus, en un appui.",
+      "<b>Dernier repas logg\u00E9</b> pour v\u00E9rifier d'un coup d'\u0153il."
+    ]
+  },
+  {
+    title: "Ajouter un aliment",
+    body: "Le bouton jaune ouvre cinq fa\u00E7ons d'ajouter, selon la situation.",
+    items: [
+      "<b>Id\u00E9es</b> : des combinaisons calcul\u00E9es \u00E0 partir de ce qu'il te reste \u00E0 manger. Un appui ajoute tout le repas.",
+      "<b>Recherche</b> : la base d'aliments, avec la dict\u00E9e vocale.",
+      "<b>Cr\u00E9er</b> : ton propre aliment, gard\u00E9 pour la suite.",
+      "<b>Recette</b> : plusieurs ingr\u00E9dients, un nombre de portions, et FONTE calcule la part.",
+      "<b>Scan</b> : le code-barres d'un produit emball\u00E9."
+    ]
+  },
+  {
+    title: "Suggestions de macros",
+    body: "Quand un macro est en retard sur les autres, l'Accueil propose des aliments qui le comblent efficacement.",
+    items: [
+      "Le titre indique lequel : \u00AB Pour combler tes prot\u00E9ines \u00BB.",
+      "La quantit\u00E9 propos\u00E9e est une portion r\u00E9aliste, pas un chiffre th\u00E9orique.",
+      "Un appui pr\u00E9-remplit l'ajout."
+    ]
+  },
+  {
+    title: "Hydratation et poids",
+    body: "Deux suivis rapides, sous les macros.",
+    items: [
+      "<b>Eau</b> : objectif calcul\u00E9 sur ton poids, boutons de 250 et 500 ml.",
+      "<b>Poids actuel</b> : appuie sur le crayon pour le mettre \u00E0 jour. Chaque saisie alimente la courbe de l'onglet Progr\u00E8s."
+    ]
+  },
+  {
+    title: "Journal",
+    body: "Le deuxi\u00E8me onglet montre n'importe quelle journ\u00E9e, pass\u00E9e ou \u00E0 venir, repas par repas.",
+    items: [
+      "Appuie sur un aliment logg\u00E9 pour corriger les grammes ou le supprimer.",
+      "<b>Dupliquer ce jour</b> : recopie une journ\u00E9e enti\u00E8re vers une autre date.",
+      "<b>G\u00E9rer les repas</b> : renomme, ajoute ou retire des cr\u00E9neaux de repas.",
+      "<b>Liste de courses</b> : agr\u00E8ge les aliments pr\u00E9vus sur 7 ou 14 jours, pr\u00EAte \u00E0 copier."
+    ]
+  },
+  {
+    title: "Aliments",
+    body: "Le troisi\u00E8me onglet est ta biblioth\u00E8que.",
+    items: [
+      "Cherche dans la base compl\u00E8te ou filtre par cat\u00E9gorie.",
+      "L'\u00E9toile met un aliment en favori : il remonte dans les recherches et les id\u00E9es.",
+      "<b>Mes aliments</b> regroupe ceux que tu as cr\u00E9\u00E9s toi-m\u00EAme."
+    ]
+  },
+  {
+    title: "Progr\u00E8s",
+    body: "Le quatri\u00E8me onglet mesure la r\u00E9gularit\u00E9, pas seulement le poids.",
+    items: [
+      "<b>R\u00E9sum\u00E9</b> : jours d'affil\u00E9e, jours suivis sur la p\u00E9riode, respect de l'objectif.",
+      "Courbe de poids et moyennes de calories et macros.",
+      "Change la p\u00E9riode pour comparer une semaine \u00E0 un mois."
+    ]
+  },
+  {
+    title: "Profil et objectifs",
+    body: "Le dernier onglet d\u00E9termine tous les chiffres du reste de l'app.",
+    items: [
+      "Tes donn\u00E9es corporelles servent \u00E0 calculer ton m\u00E9tabolisme.",
+      "<b>S\u00E8che, maintien, masse</b> : chaque objectif garde ses propres r\u00E9glages.",
+      "<b>Cyclage calorique</b> : plus de glucides les jours d'entra\u00EEnement, moins les jours de repos, \u00E0 moyenne constante."
+    ]
+  },
+  {
+    title: "Notifications",
+    body: "Un rappel arrive si un repas principal n'est toujours pas logg\u00E9 pass\u00E9 son heure.",
+    items: [
+      "L'interrupteur du Profil les active ou les coupe.",
+      "Pastille <b>verte</b> : les rappels arrivent m\u00EAme app ferm\u00E9e.",
+      "Pastille <b>grise</b> : ils n'arrivent que si l'app est ouverte. Appuie sur Connecter.",
+      "Les r\u00E9glages techniques sont sous \u00AB R\u00E9glages avanc\u00E9s \u00BB."
+    ]
+  }
+];
+
+function GuideModal({ onClose }) {
+  const deckRef = useRef(null);
+  const [page, setPage] = useState(0);
+  const total = GUIDE_PAGES.length;
+
+  const onScroll = useCallback(() => {
+    const el = deckRef.current;
+    if (!el || !el.clientWidth) return;
+    const i = Math.round(el.scrollLeft / el.clientWidth);
+    setPage((prev) => (prev === i ? prev : i));
+  }, []);
+
+  const goTo = useCallback((i) => {
+    const el = deckRef.current;
+    if (!el) return;
+    const target = Math.max(0, Math.min(total - 1, i));
+    el.scrollTo({ left: target * el.clientWidth, behavior: "smooth" });
+  }, [total]);
+
+  return /* @__PURE__ */ React.createElement(
+    Modal,
+    { title: "Guide d'utilisation", onClose },
+    /* @__PURE__ */ React.createElement(
+      "div",
+      { className: "guide-deck", ref: deckRef, onScroll },
+      GUIDE_PAGES.map((p, i) => /* @__PURE__ */ React.createElement(
+        "div",
+        { className: "guide-card", key: i },
+        /* @__PURE__ */ React.createElement("div", { className: "guide-num" }, String(i + 1).padStart(2, "0")),
+        /* @__PURE__ */ React.createElement("h3", { className: "guide-h" }, p.title),
+        /* @__PURE__ */ React.createElement("p", { className: "guide-p" }, p.body),
+        /* @__PURE__ */ React.createElement(
+          "ul",
+          { className: "guide-list" },
+          p.items.map((it, k) => /* @__PURE__ */ React.createElement("li", { key: k, dangerouslySetInnerHTML: { __html: it } }))
+        )
+      ))
+    ),
+    /* @__PURE__ */ React.createElement(
+      "div",
+      { className: "guide-ticks" },
+      GUIDE_PAGES.map((_, i) => /* @__PURE__ */ React.createElement("div", { key: i, className: "guide-tick" + (i <= page ? " on" : "") }))
+    ),
+    /* @__PURE__ */ React.createElement(
+      "div",
+      { style: { display: "flex", alignItems: "center", gap: 10, marginTop: 12 } },
+      /* @__PURE__ */ React.createElement("span", { className: "font-mono text-faint", style: { fontSize: 11.5, flex: 1 } }, page + 1, " / ", total),
+      /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm", style: { opacity: page === 0 ? 0.35 : 1 }, disabled: page === 0, onClick: () => goTo(page - 1) }, "Pr\u00E9c\u00E9dent"),
+      page < total - 1
+        ? /* @__PURE__ */ React.createElement("button", { className: "btn btn-primary btn-sm", onClick: () => goTo(page + 1) }, "Suivant")
+        : /* @__PURE__ */ React.createElement("button", { className: "btn btn-primary btn-sm", onClick: onClose }, "Terminer")
+    )
+  );
+}
+
 function ProfileScreen() {
   const { profile, setProfile, replayOnboarding, setWeightHistory, today } = useData();
   const [local, setLocal] = useState(profile);
@@ -1860,6 +2055,7 @@ function ProfileScreen() {
   // Les reglages techniques (URL, jeton, outils de depannage) sont replies par
   // defaut : au quotidien seul l'interrupteur et l'etat de connexion comptent.
   const [showPushAdvanced, setShowPushAdvanced] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   useEffect(() => {
     setLocal(profile);
   }, [profile]);
@@ -1923,7 +2119,7 @@ function ProfileScreen() {
     setProfile(next);
   };
   const proteinRange = goalTab === "seche" ? [2, 2.2] : goalTab === "masse" ? [1.8, 2] : [1.6, 2];
-  return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "topbar" }, /* @__PURE__ */ React.createElement("span", { className: "font-display", style: { fontSize: 22 } }, "Profil")), /* @__PURE__ */ React.createElement("div", { style: { padding: "16px 18px 30px" } }, /* @__PURE__ */ React.createElement("div", { className: "divider-label", style: { marginTop: 0 } }, /* @__PURE__ */ React.createElement("span", { className: "eyebrow" }, "Informations personnelles")), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 16, display: "flex", flexDirection: "column", gap: 12 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, "Pr\xE9nom"), /* @__PURE__ */ React.createElement("input", { className: "input", value: local.firstName || "", onChange: (e) => commitField({ firstName: e.target.value }), placeholder: "Ton pr\xE9nom" })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, "Taille (cm)"), /* @__PURE__ */ React.createElement("input", { className: "input font-mono", type: "number", value: local.heightCm, onChange: (e) => commitNumericField("heightCm", e.target.value) })), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, "Poids (kg)"), /* @__PURE__ */ React.createElement("input", { className: "input font-mono", type: "number", step: "0.1", value: local.weightKg, onChange: (e) => commitWeight(e.target.value) }))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, "\xC2ge"), /* @__PURE__ */ React.createElement("input", { className: "input font-mono", type: "number", value: local.age, onChange: (e) => commitNumericField("age", e.target.value) })), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, "Sexe"), /* @__PURE__ */ React.createElement("select", { className: "select", value: local.sex, onChange: (e) => commitField({ sex: e.target.value }) }, /* @__PURE__ */ React.createElement("option", { value: "homme" }, "Homme"), /* @__PURE__ */ React.createElement("option", { value: "femme" }, "Femme")))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, "Niveau d'activit\xE9"), /* @__PURE__ */ React.createElement("select", { className: "select", value: local.activityLevel, onChange: (e) => commitField({ activityLevel: e.target.value }) }, ACTIVITY_LEVELS.map((a) => /* @__PURE__ */ React.createElement("option", { key: a.id, value: a.id }, a.label, " \u2014 ", a.desc)))), /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 11, lineHeight: 1.5 } }, "M\xE9tabolisme de base calcul\xE9 avec la formule de Mifflin-St Jeor \xE0 partir de ces donn\xE9es.")), /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-block", style: { marginTop: 10 }, onClick: replayOnboarding }, /* @__PURE__ */ React.createElement(BookOpen, { size: 15 }), " Revoir le tutoriel"), /* @__PURE__ */ React.createElement("div", { className: "divider-label" }, /* @__PURE__ */ React.createElement("span", { className: "eyebrow" }, "Objectif")), /* @__PURE__ */ React.createElement("div", { className: "segmented", style: { marginBottom: 14 } }, Object.values(GOALS).map((g) => /* @__PURE__ */ React.createElement("div", { key: g.id, className: "seg" + (goalTab === g.id ? " active " + g.id : ""), onClick: () => setGoalTab(g.id) }, g.label))), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 16, marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 } }, /* @__PURE__ */ React.createElement("span", { className: "font-display", style: { fontSize: 40, color: GOALS[goalTab].color, lineHeight: 1 } }, targetsForTab.kcal), /* @__PURE__ */ React.createElement("span", { className: "text-faint", style: { fontSize: 11.5 } }, "kcal / jour")), /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 11, marginBottom: 14 } }, "TDEE ", targetsForTab.tdee, " kcal \xB7 BMR ", targetsForTab.bmr, " kcal"), /* @__PURE__ */ React.createElement(MacroSplitBar, { proteinPct: targetsForTab.proteinPct, carbsPct: targetsForTab.carbsPct, fatPct: targetsForTab.fatPct }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8, marginTop: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", fontSize: 12.5 } }, /* @__PURE__ */ React.createElement("span", { className: "text-brass" }, "\u25CF Prot\xE9ines"), /* @__PURE__ */ React.createElement("span", { className: "font-mono" }, targetsForTab.protein, " g \xB7 ", targetsForTab.proteinPct, "%")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", fontSize: 12.5 } }, /* @__PURE__ */ React.createElement("span", { className: "text-steel" }, "\u25CF Glucides"), /* @__PURE__ */ React.createElement("span", { className: "font-mono" }, targetsForTab.carbs, " g \xB7 ", targetsForTab.carbsPct, "%")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", fontSize: 12.5 } }, /* @__PURE__ */ React.createElement("span", { className: "text-rust" }, "\u25CF Lipides"), /* @__PURE__ */ React.createElement("span", { className: "font-mono" }, targetsForTab.fat, " g \xB7 ", targetsForTab.fatPct, "%")))), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 16, display: "flex", flexDirection: "column", gap: 18 } }, goalTab === "seche" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 6 } }, /* @__PURE__ */ React.createElement("span", { className: "field-label", style: { marginBottom: 0 } }, "D\xE9ficit calorique"), /* @__PURE__ */ React.createElement("span", { className: "font-mono", style: { fontSize: 12.5 } }, local.goalSettings.seche.deficitPct, "%")), /* @__PURE__ */ React.createElement(
+  return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "topbar" }, /* @__PURE__ */ React.createElement("span", { className: "font-display", style: { fontSize: 22 } }, "Profil")), /* @__PURE__ */ React.createElement("div", { style: { padding: "16px 18px 30px" } }, /* @__PURE__ */ React.createElement("div", { className: "divider-label", style: { marginTop: 0 } }, /* @__PURE__ */ React.createElement("span", { className: "eyebrow" }, "Informations personnelles")), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 16, display: "flex", flexDirection: "column", gap: 12 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, "Pr\xE9nom"), /* @__PURE__ */ React.createElement("input", { className: "input", value: local.firstName || "", onChange: (e) => commitField({ firstName: e.target.value }), placeholder: "Ton pr\xE9nom" })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, "Taille (cm)"), /* @__PURE__ */ React.createElement("input", { className: "input font-mono", type: "number", value: local.heightCm, onChange: (e) => commitNumericField("heightCm", e.target.value) })), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, "Poids (kg)"), /* @__PURE__ */ React.createElement("input", { className: "input font-mono", type: "number", step: "0.1", value: local.weightKg, onChange: (e) => commitWeight(e.target.value) }))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, "\xC2ge"), /* @__PURE__ */ React.createElement("input", { className: "input font-mono", type: "number", value: local.age, onChange: (e) => commitNumericField("age", e.target.value) })), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, "Sexe"), /* @__PURE__ */ React.createElement("select", { className: "select", value: local.sex, onChange: (e) => commitField({ sex: e.target.value }) }, /* @__PURE__ */ React.createElement("option", { value: "homme" }, "Homme"), /* @__PURE__ */ React.createElement("option", { value: "femme" }, "Femme")))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, "Niveau d'activit\xE9"), /* @__PURE__ */ React.createElement("select", { className: "select", value: local.activityLevel, onChange: (e) => commitField({ activityLevel: e.target.value }) }, ACTIVITY_LEVELS.map((a) => /* @__PURE__ */ React.createElement("option", { key: a.id, value: a.id }, a.label, " \u2014 ", a.desc)))), /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 11, lineHeight: 1.5 } }, "M\xE9tabolisme de base calcul\xE9 avec la formule de Mifflin-St Jeor \xE0 partir de ces donn\xE9es.")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginTop: 10 } }, /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost", style: { flex: 1 }, onClick: () => setShowGuide(true) }, /* @__PURE__ */ React.createElement(BookOpen, { size: 15 }), " Guide d'utilisation"), /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost", style: { flex: 1 }, onClick: replayOnboarding }, "Configuration initiale")), showGuide && /* @__PURE__ */ React.createElement(GuideModal, { onClose: () => setShowGuide(false) }), /* @__PURE__ */ React.createElement("div", { className: "divider-label" }, /* @__PURE__ */ React.createElement("span", { className: "eyebrow" }, "Objectif")), /* @__PURE__ */ React.createElement("div", { className: "segmented", style: { marginBottom: 14 } }, Object.values(GOALS).map((g) => /* @__PURE__ */ React.createElement("div", { key: g.id, className: "seg" + (goalTab === g.id ? " active " + g.id : ""), onClick: () => setGoalTab(g.id) }, g.label))), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 16, marginBottom: 16 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 } }, /* @__PURE__ */ React.createElement("span", { className: "font-display", style: { fontSize: 40, color: GOALS[goalTab].color, lineHeight: 1 } }, targetsForTab.kcal), /* @__PURE__ */ React.createElement("span", { className: "text-faint", style: { fontSize: 11.5 } }, "kcal / jour")), /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 11, marginBottom: 14 } }, "TDEE ", targetsForTab.tdee, " kcal \xB7 BMR ", targetsForTab.bmr, " kcal"), /* @__PURE__ */ React.createElement(MacroSplitBar, { proteinPct: targetsForTab.proteinPct, carbsPct: targetsForTab.carbsPct, fatPct: targetsForTab.fatPct }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8, marginTop: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", fontSize: 12.5 } }, /* @__PURE__ */ React.createElement("span", { className: "text-brass" }, "\u25CF Prot\xE9ines"), /* @__PURE__ */ React.createElement("span", { className: "font-mono" }, targetsForTab.protein, " g \xB7 ", targetsForTab.proteinPct, "%")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", fontSize: 12.5 } }, /* @__PURE__ */ React.createElement("span", { className: "text-steel" }, "\u25CF Glucides"), /* @__PURE__ */ React.createElement("span", { className: "font-mono" }, targetsForTab.carbs, " g \xB7 ", targetsForTab.carbsPct, "%")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", fontSize: 12.5 } }, /* @__PURE__ */ React.createElement("span", { className: "text-rust" }, "\u25CF Lipides"), /* @__PURE__ */ React.createElement("span", { className: "font-mono" }, targetsForTab.fat, " g \xB7 ", targetsForTab.fatPct, "%")))), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 16, display: "flex", flexDirection: "column", gap: 18 } }, goalTab === "seche" && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginBottom: 6 } }, /* @__PURE__ */ React.createElement("span", { className: "field-label", style: { marginBottom: 0 } }, "D\xE9ficit calorique"), /* @__PURE__ */ React.createElement("span", { className: "font-mono", style: { fontSize: 12.5 } }, local.goalSettings.seche.deficitPct, "%")), /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "range",
@@ -2007,7 +2203,7 @@ function ProfileScreen() {
     const tT = calcTargets(local, goalTab, "training");
     const tR = calcTargets(local, goalTab, "rest");
     return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { className: "card-2", style: { flex: 1, padding: "10px 12px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 5, marginBottom: 6 }, className: "text-brass" }, /* @__PURE__ */ React.createElement(Dumbbell, { size: 13 }), /* @__PURE__ */ React.createElement("span", { className: "eyebrow", style: { color: "inherit" } }, "Entra\xEEnement")), /* @__PURE__ */ React.createElement("div", { className: "font-display", style: { fontSize: 24, lineHeight: 1 } }, tT.kcal, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11 } }, " kcal")), /* @__PURE__ */ React.createElement("div", { className: "text-faint font-mono", style: { fontSize: 10.5, marginTop: 4 } }, "Glucides ", tT.carbs, "g")), /* @__PURE__ */ React.createElement("div", { className: "card-2", style: { flex: 1, padding: "10px 12px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 5, marginBottom: 6 }, className: "text-steel" }, /* @__PURE__ */ React.createElement(BedDouble, { size: 13 }), /* @__PURE__ */ React.createElement("span", { className: "eyebrow", style: { color: "inherit" } }, "Repos")), /* @__PURE__ */ React.createElement("div", { className: "font-display", style: { fontSize: 24, lineHeight: 1 } }, tR.kcal, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11 } }, " kcal")), /* @__PURE__ */ React.createElement("div", { className: "text-faint font-mono", style: { fontSize: 10.5, marginTop: 4 } }, "Glucides ", tR.carbs, "g")));
-  })(), /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 10.5, lineHeight: 1.5 } }, "Les prot\xE9ines et les lipides restent stables ; ce sont les glucides qui varient pour ajuster les calories. Dans le Journal, chaque jour peut \xEAtre bascul\xE9 manuellement en \xAB Entra\xEEnement \xBB ou \xAB Repos \xBB si besoin."))), /* @__PURE__ */ React.createElement("div", { className: "divider-label" }, /* @__PURE__ */ React.createElement("span", { className: "eyebrow" }, "Notifications")), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 16, display: "flex", flexDirection: "column", gap: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13.5, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 } }, /* @__PURE__ */ React.createElement(Bell, { size: 14 }), "Rappels de repas"), /* @__PURE__ */ React.createElement("div", { className: "text-faint font-mono", style: { fontSize: 11, marginTop: 3 } }, "11h \u00B7 14h \u00B7 21h")), /* @__PURE__ */ React.createElement("button", { className: "switch" + (local.remindersEnabled ? " on" : ""), aria: "Activer les rappels", onClick: () => {
+  })(), /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 10.5, lineHeight: 1.5 } }, "Les prot\xE9ines et les lipides restent stables ; ce sont les glucides qui varient pour ajuster les calories. Dans le Journal, chaque jour peut \xEAtre bascul\xE9 manuellement en \xAB Entra\xEEnement \xBB ou \xAB Repos \xBB si besoin."))), /* @__PURE__ */ React.createElement("div", { className: "divider-label" }, /* @__PURE__ */ React.createElement("span", { className: "eyebrow" }, "Notifications")), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 16, display: "flex", flexDirection: "column", gap: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13.5, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 } }, /* @__PURE__ */ React.createElement(Bell, { size: 14 }), "Rappels de repas"), /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 11, marginTop: 3, lineHeight: 1.4 } }, "Rappel si un repas principal n'est pas logg\u00E9")), /* @__PURE__ */ React.createElement("button", { className: "switch" + (local.remindersEnabled ? " on" : ""), aria: "Activer les rappels", onClick: () => {
     const next = !local.remindersEnabled;
     commitField({ remindersEnabled: next });
     if (next && typeof Notification !== "undefined" && Notification.permission === "default") {
