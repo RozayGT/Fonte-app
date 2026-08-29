@@ -152,12 +152,14 @@ const GlobalStyle = () => /* @__PURE__ */ React.createElement("style", null, `
     }
 
     *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-    html,body{margin:0; padding:0; background:var(--bg);}
+    html,body{margin:0; padding:0; background:var(--bg); height:100%; overflow:hidden;}
     .fonte-root{
       font-family:'Inter',ui-sans-serif,system-ui,sans-serif;
       background:var(--bg);
       color:var(--text);
-      min-height:100vh;
+      height:100vh;
+      height:100dvh;
+      overflow:hidden;
       width:100%;
       display:flex;
       justify-content:center;
@@ -168,12 +170,24 @@ const GlobalStyle = () => /* @__PURE__ */ React.createElement("style", null, `
     .fonte-shell{
       width:100%;
       max-width:520px;
-      min-height:100vh;
+      height:100%;
       position:relative;
-      padding-bottom:calc(88px + env(safe-area-inset-bottom));
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
       background:var(--bg);
       border-left:1px solid var(--border-soft);
       border-right:1px solid var(--border-soft);
+    }
+    /* Seule cette zone defile. La barre d'onglets, etant en dehors, ne peut
+       plus se decaler pendant le defilement par inertie d'iOS. */
+    .fonte-scroll{
+      flex:1;
+      overflow-y:auto;
+      overflow-x:hidden;
+      -webkit-overflow-scrolling:touch;
+      overscroll-behavior-y:contain;
+      padding-bottom:20px;
     }
 
     .font-display{
@@ -317,8 +331,9 @@ const GlobalStyle = () => /* @__PURE__ */ React.createElement("style", null, `
 
     /* ---------- bottom nav ---------- */
     .bottom-nav{
-      position:fixed; bottom:0; left:50%; transform:translateX(-50%);
-      width:100%; max-width:520px;
+      position:relative;
+      flex-shrink:0;
+      width:100%;
       display:flex;
       background:rgba(28,30,35,0.96);
       backdrop-filter:blur(10px);
@@ -407,7 +422,7 @@ const GlobalStyle = () => /* @__PURE__ */ React.createElement("style", null, `
       width:16px; height:16px; border-radius:50%; background:var(--brass); border:3px solid var(--bg);
     }
     .skeleton{
-      display:flex; align-items:center; justify-content:center; min-height:100vh; width:100%;
+      display:flex; align-items:center; justify-content:center; height:100%; width:100%;
       color:var(--text-faint); gap:10px; font-family:'IBM Plex Mono',monospace; font-size:13px;
     }
     .spin{animation:spin 1s linear infinite;}
@@ -935,6 +950,9 @@ function computeStreak(nutritionHistory, today) {
   }
   return { current };
 }
+// Numero de version affiche en bas de l'ecran Profil. Sert a verifier d'un coup
+// d'oeil que la derniere mise a jour a bien ete prise en compte par l'iPhone.
+const APP_VERSION = "1.0";
 const MEAL_REMINDER_HOURS = {
   "petit-dej": 11,
   "dejeuner": 14,
@@ -1975,7 +1993,7 @@ function ProfileScreen() {
       }
     },
     local.remindersEnabled ? "Activ\xE9" : "D\xE9sactiv\xE9"
-  )), /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 10.5, lineHeight: 1.5 } }, "La banni\xE8re dans l'app fonctionne toujours. Les notifications navigateur (optionnelles, activ\xE9es ci-dessus) ne fonctionnent que si l'onglet FONTE reste ouvert \u2014 sans serveur, il n'est pas possible de notifier quand l'app est ferm\xE9e.")), /* @__PURE__ */ React.createElement("div", { className: "divider-label" }, /* @__PURE__ */ React.createElement("span", { className: "eyebrow" }, "Notifications serveur (app ferm\xE9e)")), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 16, display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 11, lineHeight: 1.4 } }, "Connecte FONTE \xE0 ton propre serveur de rappels pour recevoir une vraie notification m\xEAme quand l'app est ferm\xE9e ou ton t\xE9l\xE9phone verrouill\xE9. "), local.pushSubscribed && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--green, #7ec98f)", background: "rgba(126,201,143,0.1)", border: "1px solid rgba(126,201,143,0.3)", borderRadius: 8, padding: "8px 10px" } }, /* @__PURE__ */ React.createElement(Check, { size: 14 }), "Connect\xE9 sur cet appareil \u2014 les rappels arrivent m\xEAme app ferm\xE9e."), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, "URL du serveur"), /* @__PURE__ */ React.createElement("input", { className: "input", value: local.reminderServerUrl || "", onChange: (e) => commitField({ reminderServerUrl: e.target.value }), placeholder: "https://ton-serveur.exemple.com" })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, "Jeton (AUTH_TOKEN)"), /* @__PURE__ */ React.createElement("input", { className: "input", type: "password", value: local.reminderServerToken || "", onChange: (e) => commitField({ reminderServerToken: e.target.value }), placeholder: "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("button", { className: "btn btn-primary", style: { flex: 1, opacity: pushStatus && pushStatus.type === "loading" ? 0.6 : 1 }, disabled: pushStatus && pushStatus.type === "loading", onClick: handleConnectPush }, /* @__PURE__ */ React.createElement(Bell, { size: 15 }), pushStatus && pushStatus.type === "loading" ? " Connexion\u2026" : local.pushSubscribed ? " Reconnecter" : " Se connecter"), /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost", style: { flex: 1, opacity: pushStatus && pushStatus.type === "loading" ? 0.6 : 1 }, disabled: pushStatus && pushStatus.type === "loading", onClick: handleTestPush }, " Tester")), local.pushSubscribed && /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm", style: { opacity: pushStatus && pushStatus.type === "loading" ? 0.6 : 1, color: "var(--text-faint)" }, disabled: pushStatus && pushStatus.type === "loading", onClick: handleResetDevices }, "Nettoyer les appareils fant\xF4mes"), pushStatus && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11.5, lineHeight: 1.4, color: pushStatus.type === "error" ? "var(--rust)" : pushStatus.type === "success" ? "var(--green, #7ec98f)" : "var(--text-faint)" } }, pushStatus.message))))
+  )), /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 10.5, lineHeight: 1.5 } }, "La banni\xE8re dans l'app fonctionne toujours. Les notifications navigateur (optionnelles, activ\xE9es ci-dessus) ne fonctionnent que si l'onglet FONTE reste ouvert \u2014 sans serveur, il n'est pas possible de notifier quand l'app est ferm\xE9e.")), /* @__PURE__ */ React.createElement("div", { className: "divider-label" }, /* @__PURE__ */ React.createElement("span", { className: "eyebrow" }, "Notifications serveur (app ferm\xE9e)")), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 16, display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 11, lineHeight: 1.4 } }, "Connecte FONTE \xE0 ton propre serveur de rappels pour recevoir une vraie notification m\xEAme quand l'app est ferm\xE9e ou ton t\xE9l\xE9phone verrouill\xE9. "), local.pushSubscribed && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--green, #7ec98f)", background: "rgba(126,201,143,0.1)", border: "1px solid rgba(126,201,143,0.3)", borderRadius: 8, padding: "8px 10px" } }, /* @__PURE__ */ React.createElement(Check, { size: 14 }), "Connect\xE9 sur cet appareil \u2014 les rappels arrivent m\xEAme app ferm\xE9e."), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, "URL du serveur"), /* @__PURE__ */ React.createElement("input", { className: "input", value: local.reminderServerUrl || "", onChange: (e) => commitField({ reminderServerUrl: e.target.value }), placeholder: "https://ton-serveur.exemple.com" })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, "Jeton (AUTH_TOKEN)"), /* @__PURE__ */ React.createElement("input", { className: "input", type: "password", value: local.reminderServerToken || "", onChange: (e) => commitField({ reminderServerToken: e.target.value }), placeholder: "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("button", { className: "btn btn-primary", style: { flex: 1, opacity: pushStatus && pushStatus.type === "loading" ? 0.6 : 1 }, disabled: pushStatus && pushStatus.type === "loading", onClick: handleConnectPush }, /* @__PURE__ */ React.createElement(Bell, { size: 15 }), pushStatus && pushStatus.type === "loading" ? " Connexion\u2026" : local.pushSubscribed ? " Reconnecter" : " Se connecter"), /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost", style: { flex: 1, opacity: pushStatus && pushStatus.type === "loading" ? 0.6 : 1 }, disabled: pushStatus && pushStatus.type === "loading", onClick: handleTestPush }, " Tester")), local.pushSubscribed && /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm", style: { opacity: pushStatus && pushStatus.type === "loading" ? 0.6 : 1, color: "var(--text-faint)" }, disabled: pushStatus && pushStatus.type === "loading", onClick: handleResetDevices }, "Nettoyer les appareils fant\xF4mes"), pushStatus && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11.5, lineHeight: 1.4, color: pushStatus.type === "error" ? "var(--rust)" : pushStatus.type === "success" ? "var(--green, #7ec98f)" : "var(--text-faint)" } }, pushStatus.message))), /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "18px 0 8px" } }, /* @__PURE__ */ React.createElement("div", { className: "font-mono text-faint", style: { fontSize: 11, letterSpacing: "0.08em" } }, "FONTE \xB7 version ", APP_VERSION)))
 }
 const ONBOARDING_STEPS = 7;
 function OnboardingDots({ step }) {
@@ -2056,7 +2074,7 @@ function OnboardingFlow({ profile, onComplete }) {
   const finish = () => onComplete({ ...data, onboardingDone: true });
   const canProceed = step === 0 && data.firstName.trim().length === 0 ? false : step === 1 && (!data.heightCm || !data.weightKg || !data.age) ? false : true;
   const canSkipHere = step >= 3 && step <= 5;
-  return /* @__PURE__ */ React.createElement("div", { className: "fonte-shell", style: { display: "flex", flexDirection: "column", minHeight: "100vh", paddingBottom: 20 } }, /* @__PURE__ */ React.createElement("div", { style: { padding: "20px 20px 0" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 22 } }, step > 0 ? /* @__PURE__ */ React.createElement("button", { className: "btn-icon", onClick: back }, /* @__PURE__ */ React.createElement(ChevronLeft, { size: 17 })) : /* @__PURE__ */ React.createElement("div", { style: { width: 38 } }), /* @__PURE__ */ React.createElement(OnboardingDots, { step }), canSkipHere ? /* @__PURE__ */ React.createElement("button", { className: "btn-ghost btn-sm", style: { background: "none", border: "none", color: "var(--text-faint)" }, onClick: () => setStep(6) }, "Passer") : /* @__PURE__ */ React.createElement("div", { style: { width: 38 } }))), /* @__PURE__ */ React.createElement("div", { style: { padding: "4px 20px", flex: 1, display: "flex", flexDirection: "column" } }, step === 0 && /* @__PURE__ */ React.createElement(StepWelcome, { data, set }), step === 1 && /* @__PURE__ */ React.createElement(StepProfile, { data, set }), step === 2 && /* @__PURE__ */ React.createElement(StepGoal, { data, set }), step === 3 && /* @__PURE__ */ React.createElement(StepJournal, null), step === 4 && /* @__PURE__ */ React.createElement(StepFoods, null), step === 5 && /* @__PURE__ */ React.createElement(StepProgress, null), step === 6 && /* @__PURE__ */ React.createElement(StepRecap, { data })), /* @__PURE__ */ React.createElement("div", { style: { padding: "16px 20px 4px" } }, step < ONBOARDING_STEPS - 1 ? /* @__PURE__ */ React.createElement("button", { className: "btn btn-primary btn-block", style: { padding: "13px 16px", opacity: canProceed ? 1 : 0.5 }, disabled: !canProceed, onClick: next }, "Continuer") : /* @__PURE__ */ React.createElement("button", { className: "btn btn-primary btn-block", style: { padding: "13px 16px" }, onClick: finish }, /* @__PURE__ */ React.createElement(Dumbbell, { size: 16 }), " Commencer")));
+  return /* @__PURE__ */ React.createElement("div", { className: "fonte-shell", style: { display: "flex", flexDirection: "column", overflowY: "auto", paddingBottom: 20 } }, /* @__PURE__ */ React.createElement("div", { style: { padding: "20px 20px 0" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 22 } }, step > 0 ? /* @__PURE__ */ React.createElement("button", { className: "btn-icon", onClick: back }, /* @__PURE__ */ React.createElement(ChevronLeft, { size: 17 })) : /* @__PURE__ */ React.createElement("div", { style: { width: 38 } }), /* @__PURE__ */ React.createElement(OnboardingDots, { step }), canSkipHere ? /* @__PURE__ */ React.createElement("button", { className: "btn-ghost btn-sm", style: { background: "none", border: "none", color: "var(--text-faint)" }, onClick: () => setStep(6) }, "Passer") : /* @__PURE__ */ React.createElement("div", { style: { width: 38 } }))), /* @__PURE__ */ React.createElement("div", { style: { padding: "4px 20px", flex: 1, display: "flex", flexDirection: "column" } }, step === 0 && /* @__PURE__ */ React.createElement(StepWelcome, { data, set }), step === 1 && /* @__PURE__ */ React.createElement(StepProfile, { data, set }), step === 2 && /* @__PURE__ */ React.createElement(StepGoal, { data, set }), step === 3 && /* @__PURE__ */ React.createElement(StepJournal, null), step === 4 && /* @__PURE__ */ React.createElement(StepFoods, null), step === 5 && /* @__PURE__ */ React.createElement(StepProgress, null), step === 6 && /* @__PURE__ */ React.createElement(StepRecap, { data })), /* @__PURE__ */ React.createElement("div", { style: { padding: "16px 20px 4px" } }, step < ONBOARDING_STEPS - 1 ? /* @__PURE__ */ React.createElement("button", { className: "btn btn-primary btn-block", style: { padding: "13px 16px", opacity: canProceed ? 1 : 0.5 }, disabled: !canProceed, onClick: next }, "Continuer") : /* @__PURE__ */ React.createElement("button", { className: "btn btn-primary btn-block", style: { padding: "13px 16px" }, onClick: finish }, /* @__PURE__ */ React.createElement(Dumbbell, { size: 16 }), " Commencer")));
 }
 function App() {
   const [profileRaw, setProfile, profileReady] = usePersisted("profile", DEFAULT_PROFILE);
@@ -2239,7 +2257,7 @@ function App() {
       }
     ));
   }
-  return /* @__PURE__ */ React.createElement("div", { className: "fonte-root" }, /* @__PURE__ */ React.createElement(GlobalStyle, null), /* @__PURE__ */ React.createElement(DataContext.Provider, { value: ctxValue }, /* @__PURE__ */ React.createElement("div", { className: "fonte-shell" }, activeTab === "dashboard" && /* @__PURE__ */ React.createElement(DashboardScreen, null), activeTab === "journal" && /* @__PURE__ */ React.createElement(JournalScreen, null), activeTab === "aliments" && /* @__PURE__ */ React.createElement(AlimentsScreen, null), activeTab === "progres" && /* @__PURE__ */ React.createElement(ProgressScreen, null), activeTab === "profil" && /* @__PURE__ */ React.createElement(ProfileScreen, null), /* @__PURE__ */ React.createElement(BottomNav, { active: activeTab, onChange: setActiveTab }), picker && /* @__PURE__ */ React.createElement(FoodPickerModal, { date: picker.date, initialMealId: picker.mealId, presetFood: picker.presetFood, onClose: () => setPicker(null) }))));
+  return /* @__PURE__ */ React.createElement("div", { className: "fonte-root" }, /* @__PURE__ */ React.createElement(GlobalStyle, null), /* @__PURE__ */ React.createElement(DataContext.Provider, { value: ctxValue }, /* @__PURE__ */ React.createElement("div", { className: "fonte-shell" }, /* @__PURE__ */ React.createElement("div", { className: "fonte-scroll" }, activeTab === "dashboard" && /* @__PURE__ */ React.createElement(DashboardScreen, null), activeTab === "journal" && /* @__PURE__ */ React.createElement(JournalScreen, null), activeTab === "aliments" && /* @__PURE__ */ React.createElement(AlimentsScreen, null), activeTab === "progres" && /* @__PURE__ */ React.createElement(ProgressScreen, null), activeTab === "profil" && /* @__PURE__ */ React.createElement(ProfileScreen, null)), /* @__PURE__ */ React.createElement(BottomNav, { active: activeTab, onChange: setActiveTab }), picker && /* @__PURE__ */ React.createElement(FoodPickerModal, { date: picker.date, initialMealId: picker.mealId, presetFood: picker.presetFood, onClose: () => setPicker(null) }))));
 }
 const rootEl = document.getElementById("root");
 const root = ReactDOM.createRoot(rootEl);
