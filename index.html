@@ -384,6 +384,23 @@ const GlobalStyle = () => /* @__PURE__ */ React.createElement("style", null, `
     .guide-tick{flex:1; height:3px; border-radius:2px; background:var(--border); transition:background .22s;}
     .guide-tick.on{background:var(--brass);}
 
+    /* ---------- bandeau d'annulation ---------- */
+    .undo-bar{
+      position:absolute; left:12px; right:12px; bottom:12px; z-index:40;
+      display:flex; align-items:center; gap:10px;
+      background:var(--surface-3); border:1px solid var(--border);
+      border-radius:12px; padding:11px 12px;
+      font-size:13px; color:var(--text);
+      box-shadow:0 12px 28px -14px rgba(0,0,0,0.85);
+      animation:undoIn .18s ease;
+    }
+    @keyframes undoIn{from{transform:translateY(10px); opacity:0;} to{transform:translateY(0); opacity:1;}}
+    .undo-btn{
+      flex-shrink:0; border:none; background:var(--brass); color:#15161a;
+      border-radius:8px; padding:7px 13px;
+      font-family:'Inter',sans-serif; font-size:12.5px; font-weight:700;
+    }
+
     /* ---------- interrupteur ---------- */
     .switch{
       width:46px; height:27px; border-radius:999px; flex-shrink:0; cursor:pointer;
@@ -1023,7 +1040,7 @@ function computeStreak(nutritionHistory, today) {
 }
 // Numero de version affiche en bas de l'ecran Profil. Sert a verifier d'un coup
 // d'oeil que la derniere mise a jour a bien ete prise en compte par l'iPhone.
-const APP_VERSION = "2.1";
+const APP_VERSION = "2.2";
 const MEAL_REMINDER_HOURS = {
   "petit-dej": 11,
   "dejeuner": 14,
@@ -1355,7 +1372,7 @@ function QuantityStepper({ grams, setGrams, portionLabel, portionGrams }) {
   ), /* @__PURE__ */ React.createElement("button", { className: "btn-icon", onClick: () => setGrams(grams + 10) }, /* @__PURE__ */ React.createElement(Plus, { size: 15 }))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" } }, portionLabel && /* @__PURE__ */ React.createElement("span", { className: "chip", onClick: () => setGrams(portionGrams) }, portionLabel, " \xB7 ", portionGrams, " g"), [50, 100, 150, 200].map((g) => /* @__PURE__ */ React.createElement("span", { key: g, className: "chip" + (grams === g ? " active" : ""), onClick: () => setGrams(g) }, g, " g"))));
 }
 function EditEntryModal({ date, mealId, entry, onClose }) {
-  const { removeEntry, updateEntryGrams } = useData();
+  const { removeEntry, updateEntryGrams, moveEntry, mealSlots } = useData();
   const [grams, setGrams] = useState(entry.grams);
   const preview = scaleFood(entry.per100, grams);
   return /* @__PURE__ */ React.createElement(Modal, { title: entry.name, onClose, footer: /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("button", { className: "btn btn-danger", onClick: () => {
@@ -1364,7 +1381,7 @@ function EditEntryModal({ date, mealId, entry, onClose }) {
   } }, /* @__PURE__ */ React.createElement(Trash2, { size: 15 }), " Retirer"), /* @__PURE__ */ React.createElement("button", { className: "btn btn-primary btn-block", onClick: () => {
     updateEntryGrams(date, mealId, entry.id, grams);
     onClose();
-  } }, /* @__PURE__ */ React.createElement(Check, { size: 15 }), " Mettre \xE0 jour")) }, /* @__PURE__ */ React.createElement(QuantityStepper, { grams, setGrams, portionLabel: entry.portionLabel, portionGrams: entry.portionGrams }), /* @__PURE__ */ React.createElement("div", { className: "divider-label" }, /* @__PURE__ */ React.createElement("span", { className: "eyebrow" }, "Aper\xE7u")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", fontSize: 13 } }, /* @__PURE__ */ React.createElement("span", { className: "font-mono" }, round(preview.kcal), " kcal"), /* @__PURE__ */ React.createElement("span", { className: "font-mono text-brass" }, round(preview.protein), "g P"), /* @__PURE__ */ React.createElement("span", { className: "font-mono text-steel" }, round(preview.carbs), "g G"), /* @__PURE__ */ React.createElement("span", { className: "font-mono text-rust" }, round(preview.fat), "g L")));
+  } }, /* @__PURE__ */ React.createElement(Check, { size: 15 }), " Mettre \xE0 jour")) }, /* @__PURE__ */ React.createElement(QuantityStepper, { grams, setGrams, portionLabel: entry.portionLabel, portionGrams: entry.portionGrams }), /* @__PURE__ */ React.createElement("div", { className: "divider-label" }, /* @__PURE__ */ React.createElement("span", { className: "eyebrow" }, "D\u00E9placer vers")), /* @__PURE__ */ React.createElement("div", { className: "scroll-x", style: { marginBottom: 4 } }, (mealSlots || []).map((m) => /* @__PURE__ */ React.createElement("span", { key: m.id, className: "chip" + (m.id === mealId ? " active" : ""), onClick: () => { if (m.id !== mealId) { updateEntryGrams(date, mealId, entry.id, grams); moveEntry(date, mealId, entry.id, m.id); onClose(); } } }, m.label))), /* @__PURE__ */ React.createElement("div", { className: "divider-label" }, /* @__PURE__ */ React.createElement("span", { className: "eyebrow" }, "Aper\xE7u")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", fontSize: 13 } }, /* @__PURE__ */ React.createElement("span", { className: "font-mono" }, round(preview.kcal), " kcal"), /* @__PURE__ */ React.createElement("span", { className: "font-mono text-brass" }, round(preview.protein), "g P"), /* @__PURE__ */ React.createElement("span", { className: "font-mono text-steel" }, round(preview.carbs), "g G"), /* @__PURE__ */ React.createElement("span", { className: "font-mono text-rust" }, round(preview.fat), "g L")));
 }
 function MealCard({ dateStr, meal, index, entries, onEdit }) {
   const { openPicker } = useData();
@@ -1733,6 +1750,7 @@ function PhotoTab({ date, mealId, onClose }) {
   const [items, setItems] = useState([]);
   const [note, setNote] = useState("");
   const fileRef = useRef(null);
+  const libraryRef = useRef(null);
 
   const serverUrl = profile.reminderServerUrl;
   const token = profile.reminderServerToken;
@@ -1827,12 +1845,28 @@ function PhotoTab({ date, mealId, onClose }) {
       onChange: onFile,
       style: { display: "none" }
     }),
-    /* @__PURE__ */ React.createElement("button", {
-      className: "btn btn-primary btn-block",
-      disabled: busy,
-      onClick: () => fileRef.current && fileRef.current.click()
-    }, /* @__PURE__ */ React.createElement(Camera, { size: 16 }),
-      busy ? (status === "compressing" ? " Preparation\u2026" : " Analyse en cours\u2026") : (items.length ? " Reprendre une photo" : " Prendre une photo")
+    /* @__PURE__ */ React.createElement("input", {
+      ref: libraryRef,
+      type: "file",
+      accept: "image/*",
+      onChange: onFile,
+      style: { display: "none" }
+    }),
+    /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } },
+      /* @__PURE__ */ React.createElement("button", {
+        className: "btn btn-primary",
+        style: { flex: 2 },
+        disabled: busy,
+        onClick: () => fileRef.current && fileRef.current.click()
+      }, /* @__PURE__ */ React.createElement(Camera, { size: 16 }),
+        busy ? (status === "compressing" ? " Pr\u00E9paration\u2026" : " Analyse\u2026") : (items.length ? " Reprendre" : " Photographier")
+      ),
+      /* @__PURE__ */ React.createElement("button", {
+        className: "btn btn-ghost",
+        style: { flex: 1 },
+        disabled: busy,
+        onClick: () => libraryRef.current && libraryRef.current.click()
+      }, "Galerie")
     ),
     preview && /* @__PURE__ */ React.createElement("img", {
       src: preview,
@@ -1894,11 +1928,38 @@ function PhotoTab({ date, mealId, onClose }) {
 }
 
 function BarcodeTab({ date, mealId, onClose }) {
-  const { addCustomFood, addEntry } = useData();
+  const { addCustomFood, addEntry, profile } = useData();
   const [code, setCode] = useState("");
   const [status, setStatus] = useState("idle");
   const [food, setFood] = useState(null);
   const [grams, setGrams] = useState(100);
+  const [scanError, setScanError] = useState("");
+  const camRef = useRef(null);
+  const canScan = Boolean(profile.reminderServerUrl && profile.reminderServerToken);
+
+  // Photographier le code-barres plutot que taper 13 chiffres a la main.
+  const scanFromPhoto = useCallback(async (file) => {
+    setScanError("");
+    setStatus("scanning");
+    try {
+      const { base64 } = await compressImage(file, 1400, 0.8);
+      const r = await serverFetch(profile.reminderServerUrl, "/api/read-barcode", profile.reminderServerToken, {
+        method: "POST",
+        body: JSON.stringify({ image: base64, mimeType: "image/jpeg" })
+      });
+      if (r && r.code) {
+        setCode(r.code);
+        setStatus("idle");
+      } else {
+        setStatus("idle");
+        setScanError("Code-barres illisible. R\u00E9essaie de plus pr\u00E8s.");
+      }
+    } catch (err) {
+      setStatus("idle");
+      setScanError((err && err.message) || "Lecture impossible.");
+    }
+  }, [profile.reminderServerUrl, profile.reminderServerToken]);
+
   const lookup = async () => {
     if (!code.trim()) return;
     setStatus("loading");
@@ -1940,7 +2001,7 @@ function BarcodeTab({ date, mealId, onClose }) {
       onClose();
     } }, /* @__PURE__ */ React.createElement(Plus, { size: 15 }), " Ajouter au repas"));
   }
-  return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "text-dim", style: { fontSize: 12.5, lineHeight: 1.5, marginBottom: 14 } }, "Saisissez le code-barres du produit pour r\xE9cup\xE9rer ses valeurs via Open Food Facts."), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("input", { className: "input font-mono", inputMode: "numeric", placeholder: "Ex. 3017620422003", value: code, onChange: (e) => setCode(e.target.value) }), /* @__PURE__ */ React.createElement("button", { className: "btn btn-primary", onClick: lookup, disabled: status === "loading" }, status === "loading" ? /* @__PURE__ */ React.createElement(Loader2, { size: 15, className: "spin" }) : /* @__PURE__ */ React.createElement(Barcode, { size: 15 }))), status === "error" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginTop: 12, fontSize: 12.5, alignItems: "flex-start" }, className: "text-rust" }, /* @__PURE__ */ React.createElement(AlertCircle, { size: 15, style: { flexShrink: 0, marginTop: 1 } }), /* @__PURE__ */ React.createElement("span", null, "Produit introuvable, ou requ\xEAte bloqu\xE9e par le navigateur (CORS). Si le probl\xE8me persiste, utilisez l'onglet \xAB Cr\xE9er \xBB pour saisir l'aliment manuellement.")));
+  return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "text-dim", style: { fontSize: 12.5, lineHeight: 1.5, marginBottom: 14 } }, "Photographie le code-barres, ou saisis-le \u00E0 la main. Les valeurs viennent d'Open Food Facts."), canScan && /* @__PURE__ */ React.createElement("input", { ref: camRef, type: "file", accept: "image/*", capture: "environment", style: { display: "none" }, onChange: (e) => { const f = e.target.files && e.target.files[0]; if (f) scanFromPhoto(f); e.target.value = ""; } }), canScan && /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-block", style: { marginBottom: 12 }, disabled: status === "scanning", onClick: () => camRef.current && camRef.current.click() }, /* @__PURE__ */ React.createElement(Camera, { size: 15 }), status === "scanning" ? " Lecture du code\u2026" : " Photographier le code-barres"), scanError && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: "var(--rust)", marginBottom: 12, lineHeight: 1.4 } }, scanError), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("input", { className: "input font-mono", inputMode: "numeric", placeholder: "Ex. 3017620422003", value: code, onChange: (e) => setCode(e.target.value) }), /* @__PURE__ */ React.createElement("button", { className: "btn btn-primary", onClick: lookup, disabled: status === "loading" }, status === "loading" ? /* @__PURE__ */ React.createElement(Loader2, { size: 15, className: "spin" }) : /* @__PURE__ */ React.createElement(Barcode, { size: 15 }))), status === "error" && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginTop: 12, fontSize: 12.5, alignItems: "flex-start" }, className: "text-rust" }, /* @__PURE__ */ React.createElement(AlertCircle, { size: 15, style: { flexShrink: 0, marginTop: 1 } }), /* @__PURE__ */ React.createElement("span", null, "Produit introuvable, ou requ\xEAte bloqu\xE9e par le navigateur (CORS). Si le probl\xE8me persiste, utilisez l'onglet \xAB Cr\xE9er \xBB pour saisir l'aliment manuellement.")));
 }
 function MealIdeasTab({ date, mealId, onClose, onPickManually }) {
   const { allFoods, addEntry, mealSlots, nutritionHistory, getDayTargets, favoriteFoodIds, recentFoodIds } = useData();
@@ -2200,6 +2261,32 @@ const GUIDE_PAGES = [
     ]
   }
 ];
+
+// Bandeau d'annulation : apparait quelques secondes apres un retrait pour
+// permettre de revenir en arriere, puis disparait tout seul.
+function UndoBar() {
+  const { lastRemoved, undoRemove } = useData();
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (!lastRemoved) { setVisible(false); return; }
+    setVisible(true);
+    const t = setTimeout(() => setVisible(false), 6000);
+    return () => clearTimeout(t);
+  }, [lastRemoved]);
+
+  if (!visible || !lastRemoved) return null;
+
+  return /* @__PURE__ */ React.createElement("div", { className: "undo-bar" },
+    /* @__PURE__ */ React.createElement("span", { style: { flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } },
+      lastRemoved.entry.name, " retir\u00E9"
+    ),
+    /* @__PURE__ */ React.createElement("button", {
+      className: "undo-btn",
+      onClick: () => { undoRemove(); setVisible(false); }
+    }, "Annuler")
+  );
+}
 
 function GuideModal({ onClose }) {
   const deckRef = useRef(null);
@@ -2532,6 +2619,7 @@ function App() {
   const [picker, setPicker] = useState(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [dismissedReminderKey, setDismissedReminderKey] = useState(null);
+  const [lastRemoved, setLastRemoved] = useState(null);
   const notifiedRef = useRef(/* @__PURE__ */ new Set());
   const today = todayKey();
   const allReady = profileReady && customReady && weightReady && mealsReady && historyReady && lastReady && favReady && recentReady && waterReady;
@@ -2647,12 +2735,44 @@ function App() {
   const toggleFavorite = useCallback((foodId) => {
     setFavoriteFoodIds((prev) => prev.includes(foodId) ? prev.filter((id) => id !== foodId) : [foodId, ...prev]);
   }, [setFavoriteFoodIds]);
+  // On garde de cote le dernier aliment retire pour pouvoir le remettre.
+  // Sans cela, un appui malencontreux fait perdre la saisie sans recours.
   const removeEntry = useCallback((date, mealId, entryId) => {
     setNutritionHistory((prev) => {
       const day = prev[date];
       if (!day) return prev;
-      const mealEntries = (day.meals[mealId] || []).filter((e) => e.id !== entryId);
-      return { ...prev, [date]: { meals: { ...day.meals, [mealId]: mealEntries } } };
+      const list = day.meals[mealId] || [];
+      const idx = list.findIndex((e) => e.id === entryId);
+      if (idx >= 0) setLastRemoved({ date, mealId, entry: list[idx], index: idx, at: Date.now() });
+      return { ...prev, [date]: { meals: { ...day.meals, [mealId]: list.filter((e) => e.id !== entryId) } } };
+    });
+  }, [setNutritionHistory]);
+
+  const undoRemove = useCallback(() => {
+    setLastRemoved((removed) => {
+      if (!removed) return null;
+      setNutritionHistory((prev) => {
+        const day = prev[removed.date] || { meals: {} };
+        const list = (day.meals[removed.mealId] || []).slice();
+        if (list.some((e) => e.id === removed.entry.id)) return prev; // deja remis
+        list.splice(Math.min(removed.index, list.length), 0, removed.entry);
+        return { ...prev, [removed.date]: { meals: { ...day.meals, [removed.mealId]: list } } };
+      });
+      return null;
+    });
+  }, [setNutritionHistory]);
+
+  // Deplace un aliment vers un autre repas, sans avoir a le ressaisir.
+  const moveEntry = useCallback((date, fromMealId, entryId, toMealId) => {
+    if (fromMealId === toMealId) return;
+    setNutritionHistory((prev) => {
+      const day = prev[date];
+      if (!day) return prev;
+      const from = day.meals[fromMealId] || [];
+      const entry = from.find((e) => e.id === entryId);
+      if (!entry) return prev;
+      const to = day.meals[toMealId] || [];
+      return { ...prev, [date]: { meals: { ...day.meals, [fromMealId]: from.filter((e) => e.id !== entryId), [toMealId]: [...to, entry] } } };
     });
   }, [setNutritionHistory]);
   const updateEntryGrams = useCallback((date, mealId, entryId, grams) => {
@@ -2679,6 +2799,9 @@ function App() {
     today,
     backupState,
     restoreFromServer,
+    lastRemoved,
+    undoRemove,
+    moveEntry,
     nutritionHistory,
     setNutritionHistory,
     customFoods,
@@ -2757,7 +2880,7 @@ function App() {
       }
     ));
   }
-  return /* @__PURE__ */ React.createElement("div", { className: "fonte-root" }, /* @__PURE__ */ React.createElement(GlobalStyle, null), /* @__PURE__ */ React.createElement(DataContext.Provider, { value: ctxValue }, /* @__PURE__ */ React.createElement("div", { className: "fonte-shell" }, /* @__PURE__ */ React.createElement("div", { className: "fonte-scroll" }, activeTab === "dashboard" && /* @__PURE__ */ React.createElement(DashboardScreen, null), activeTab === "journal" && /* @__PURE__ */ React.createElement(JournalScreen, null), activeTab === "aliments" && /* @__PURE__ */ React.createElement(AlimentsScreen, null), activeTab === "progres" && /* @__PURE__ */ React.createElement(ProgressScreen, null), activeTab === "profil" && /* @__PURE__ */ React.createElement(ProfileScreen, null)), /* @__PURE__ */ React.createElement(BottomNav, { active: activeTab, onChange: setActiveTab }), picker && /* @__PURE__ */ React.createElement(FoodPickerModal, { date: picker.date, initialMealId: picker.mealId, presetFood: picker.presetFood, onClose: () => setPicker(null) }))));
+  return /* @__PURE__ */ React.createElement("div", { className: "fonte-root" }, /* @__PURE__ */ React.createElement(GlobalStyle, null), /* @__PURE__ */ React.createElement(DataContext.Provider, { value: ctxValue }, /* @__PURE__ */ React.createElement("div", { className: "fonte-shell" }, /* @__PURE__ */ React.createElement("div", { className: "fonte-scroll" }, activeTab === "dashboard" && /* @__PURE__ */ React.createElement(DashboardScreen, null), activeTab === "journal" && /* @__PURE__ */ React.createElement(JournalScreen, null), activeTab === "aliments" && /* @__PURE__ */ React.createElement(AlimentsScreen, null), activeTab === "progres" && /* @__PURE__ */ React.createElement(ProgressScreen, null), activeTab === "profil" && /* @__PURE__ */ React.createElement(ProfileScreen, null)), /* @__PURE__ */ React.createElement(UndoBar, null), /* @__PURE__ */ React.createElement(BottomNav, { active: activeTab, onChange: setActiveTab }), picker && /* @__PURE__ */ React.createElement(FoodPickerModal, { date: picker.date, initialMealId: picker.mealId, presetFood: picker.presetFood, onClose: () => setPicker(null) }))));
 }
 const rootEl = document.getElementById("root");
 const root = ReactDOM.createRoot(rootEl);
