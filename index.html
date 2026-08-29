@@ -5,6 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
 <meta name="theme-color" content="#131417" />
 <title>FONTE — Suivi nutrition musculation</title>
+
+<!-- Icone affichee sur l'ecran d'accueil iOS. Les 3 fichiers PNG doivent se
+     trouver a cote de index.html dans le depot. Le parametre ?v=1 force iOS a
+     recharger l'icone si elle change plus tard (sinon elle reste en cache). -->
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=1" />
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=1" />
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png?v=1" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="FONTE" />
 </head>
 <body style="margin:0; background:#131417;">
 <div id="root"></div>
@@ -328,6 +338,21 @@ const GlobalStyle = () => /* @__PURE__ */ React.createElement("style", null, `
     .bar-fill.carbs{background:var(--steel);}
     .bar-fill.fat{background:var(--rust);}
     .bar-fill.over{background:var(--rust) !important;}
+
+    /* ---------- interrupteur ---------- */
+    .switch{
+      width:46px; height:27px; border-radius:999px; flex-shrink:0; cursor:pointer;
+      background:var(--surface-3); border:1px solid var(--border-soft);
+      position:relative; padding:0; transition:background .18s, border-color .18s;
+    }
+    .switch::after{
+      content:""; position:absolute; top:2px; left:2px;
+      width:21px; height:21px; border-radius:50%;
+      background:var(--text-faint); transition:transform .18s, background .18s;
+    }
+    .switch.on{background:var(--brass); border-color:var(--brass);}
+    .switch.on::after{background:#15161a; transform:translateX(19px);}
+    .status-dot{width:7px; height:7px; border-radius:50%; flex-shrink:0;}
 
     /* ---------- bottom nav ---------- */
     .bottom-nav{
@@ -952,7 +977,7 @@ function computeStreak(nutritionHistory, today) {
 }
 // Numero de version affiche en bas de l'ecran Profil. Sert a verifier d'un coup
 // d'oeil que la derniere mise a jour a bien ete prise en compte par l'iPhone.
-const APP_VERSION = "1.0";
+const APP_VERSION = "1.1";
 const MEAL_REMINDER_HOURS = {
   "petit-dej": 11,
   "dejeuner": 14,
@@ -1832,6 +1857,9 @@ function ProfileScreen() {
   const [local, setLocal] = useState(profile);
   const [goalTab, setGoalTab] = useState(profile.activeGoal);
   const [pushStatus, setPushStatus] = useState(null);
+  // Les reglages techniques (URL, jeton, outils de depannage) sont replies par
+  // defaut : au quotidien seul l'interrupteur et l'etat de connexion comptent.
+  const [showPushAdvanced, setShowPushAdvanced] = useState(false);
   useEffect(() => {
     setLocal(profile);
   }, [profile]);
@@ -1979,21 +2007,13 @@ function ProfileScreen() {
     const tT = calcTargets(local, goalTab, "training");
     const tR = calcTargets(local, goalTab, "rest");
     return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { className: "card-2", style: { flex: 1, padding: "10px 12px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 5, marginBottom: 6 }, className: "text-brass" }, /* @__PURE__ */ React.createElement(Dumbbell, { size: 13 }), /* @__PURE__ */ React.createElement("span", { className: "eyebrow", style: { color: "inherit" } }, "Entra\xEEnement")), /* @__PURE__ */ React.createElement("div", { className: "font-display", style: { fontSize: 24, lineHeight: 1 } }, tT.kcal, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11 } }, " kcal")), /* @__PURE__ */ React.createElement("div", { className: "text-faint font-mono", style: { fontSize: 10.5, marginTop: 4 } }, "Glucides ", tT.carbs, "g")), /* @__PURE__ */ React.createElement("div", { className: "card-2", style: { flex: 1, padding: "10px 12px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 5, marginBottom: 6 }, className: "text-steel" }, /* @__PURE__ */ React.createElement(BedDouble, { size: 13 }), /* @__PURE__ */ React.createElement("span", { className: "eyebrow", style: { color: "inherit" } }, "Repos")), /* @__PURE__ */ React.createElement("div", { className: "font-display", style: { fontSize: 24, lineHeight: 1 } }, tR.kcal, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11 } }, " kcal")), /* @__PURE__ */ React.createElement("div", { className: "text-faint font-mono", style: { fontSize: 10.5, marginTop: 4 } }, "Glucides ", tR.carbs, "g")));
-  })(), /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 10.5, lineHeight: 1.5 } }, "Les prot\xE9ines et les lipides restent stables ; ce sont les glucides qui varient pour ajuster les calories. Dans le Journal, chaque jour peut \xEAtre bascul\xE9 manuellement en \xAB Entra\xEEnement \xBB ou \xAB Repos \xBB si besoin."))), /* @__PURE__ */ React.createElement("div", { className: "divider-label" }, /* @__PURE__ */ React.createElement("span", { className: "eyebrow" }, "Rappels")), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 16, display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13.5, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 } }, /* @__PURE__ */ React.createElement(Bell, { size: 14 }), "Rappels de repas"), /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 11, marginTop: 2, lineHeight: 1.4 } }, "Un rappel s'affiche si un repas n'est pas encore logg\xE9 pass\xE9 son heure habituelle.")), /* @__PURE__ */ React.createElement(
-    "button",
-    {
-      className: "chip" + (local.remindersEnabled ? " active" : ""),
-      style: { flexShrink: 0 },
-      onClick: () => {
-        const next = !local.remindersEnabled;
-        commitField({ remindersEnabled: next });
-        if (next && typeof Notification !== "undefined" && Notification.permission === "default") {
-          Notification.requestPermission();
-        }
-      }
-    },
-    local.remindersEnabled ? "Activ\xE9" : "D\xE9sactiv\xE9"
-  )), /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 10.5, lineHeight: 1.5 } }, "La banni\xE8re dans l'app fonctionne toujours. Les notifications navigateur (optionnelles, activ\xE9es ci-dessus) ne fonctionnent que si l'onglet FONTE reste ouvert \u2014 sans serveur, il n'est pas possible de notifier quand l'app est ferm\xE9e.")), /* @__PURE__ */ React.createElement("div", { className: "divider-label" }, /* @__PURE__ */ React.createElement("span", { className: "eyebrow" }, "Notifications serveur (app ferm\xE9e)")), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 16, display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 11, lineHeight: 1.4 } }, "Connecte FONTE \xE0 ton propre serveur de rappels pour recevoir une vraie notification m\xEAme quand l'app est ferm\xE9e ou ton t\xE9l\xE9phone verrouill\xE9. "), local.pushSubscribed && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--green, #7ec98f)", background: "rgba(126,201,143,0.1)", border: "1px solid rgba(126,201,143,0.3)", borderRadius: 8, padding: "8px 10px" } }, /* @__PURE__ */ React.createElement(Check, { size: 14 }), "Connect\xE9 sur cet appareil \u2014 les rappels arrivent m\xEAme app ferm\xE9e."), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, "URL du serveur"), /* @__PURE__ */ React.createElement("input", { className: "input", value: local.reminderServerUrl || "", onChange: (e) => commitField({ reminderServerUrl: e.target.value }), placeholder: "https://ton-serveur.exemple.com" })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, "Jeton (AUTH_TOKEN)"), /* @__PURE__ */ React.createElement("input", { className: "input", type: "password", value: local.reminderServerToken || "", onChange: (e) => commitField({ reminderServerToken: e.target.value }), placeholder: "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("button", { className: "btn btn-primary", style: { flex: 1, opacity: pushStatus && pushStatus.type === "loading" ? 0.6 : 1 }, disabled: pushStatus && pushStatus.type === "loading", onClick: handleConnectPush }, /* @__PURE__ */ React.createElement(Bell, { size: 15 }), pushStatus && pushStatus.type === "loading" ? " Connexion\u2026" : local.pushSubscribed ? " Reconnecter" : " Se connecter"), /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost", style: { flex: 1, opacity: pushStatus && pushStatus.type === "loading" ? 0.6 : 1 }, disabled: pushStatus && pushStatus.type === "loading", onClick: handleTestPush }, " Tester")), local.pushSubscribed && /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm", style: { opacity: pushStatus && pushStatus.type === "loading" ? 0.6 : 1, color: "var(--text-faint)" }, disabled: pushStatus && pushStatus.type === "loading", onClick: handleResetDevices }, "Nettoyer les appareils fant\xF4mes"), pushStatus && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11.5, lineHeight: 1.4, color: pushStatus.type === "error" ? "var(--rust)" : pushStatus.type === "success" ? "var(--green, #7ec98f)" : "var(--text-faint)" } }, pushStatus.message))), /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "18px 0 8px" } }, /* @__PURE__ */ React.createElement("div", { className: "font-mono text-faint", style: { fontSize: 11, letterSpacing: "0.08em" } }, "FONTE \xB7 version ", APP_VERSION)))
+  })(), /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 10.5, lineHeight: 1.5 } }, "Les prot\xE9ines et les lipides restent stables ; ce sont les glucides qui varient pour ajuster les calories. Dans le Journal, chaque jour peut \xEAtre bascul\xE9 manuellement en \xAB Entra\xEEnement \xBB ou \xAB Repos \xBB si besoin."))), /* @__PURE__ */ React.createElement("div", { className: "divider-label" }, /* @__PURE__ */ React.createElement("span", { className: "eyebrow" }, "Notifications")), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 16, display: "flex", flexDirection: "column", gap: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { minWidth: 0 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13.5, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 } }, /* @__PURE__ */ React.createElement(Bell, { size: 14 }), "Rappels de repas"), /* @__PURE__ */ React.createElement("div", { className: "text-faint font-mono", style: { fontSize: 11, marginTop: 3 } }, "11h \u00B7 14h \u00B7 21h")), /* @__PURE__ */ React.createElement("button", { className: "switch" + (local.remindersEnabled ? " on" : ""), aria: "Activer les rappels", onClick: () => {
+    const next = !local.remindersEnabled;
+    commitField({ remindersEnabled: next });
+    if (next && typeof Notification !== "undefined" && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  } })), local.remindersEnabled && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, borderTop: "1px solid var(--border-soft)", paddingTop: 11 } }, /* @__PURE__ */ React.createElement("span", { className: "status-dot", style: { background: local.pushSubscribed ? "var(--green, #7ec98f)" : "var(--text-faint)" } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, flex: 1, color: local.pushSubscribed ? "var(--text-dim)" : "var(--text-faint)" } }, local.pushSubscribed ? "Actifs m\u00EAme app ferm\u00E9e" : "Actifs seulement app ouverte"), !local.pushSubscribed && /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm", style: { flexShrink: 0, opacity: pushStatus && pushStatus.type === "loading" ? 0.6 : 1 }, disabled: pushStatus && pushStatus.type === "loading", onClick: handleConnectPush }, pushStatus && pushStatus.type === "loading" ? "Connexion\u2026" : "Connecter")), pushStatus && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11.5, lineHeight: 1.4, color: pushStatus.type === "error" ? "var(--rust)" : pushStatus.type === "success" ? "var(--green, #7ec98f)" : "var(--text-faint)" } }, pushStatus.message), /* @__PURE__ */ React.createElement("button", { style: { background: "none", border: "none", padding: 0, textAlign: "left", color: "var(--text-faint)", fontSize: 11, fontFamily: "inherit", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }, onClick: () => setShowPushAdvanced((v) => !v) }, showPushAdvanced ? "\u2212" : "+", " R\u00E9glages avanc\u00E9s"), showPushAdvanced && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10, borderTop: "1px solid var(--border-soft)", paddingTop: 12 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, "URL du serveur"), /* @__PURE__ */ React.createElement("input", { className: "input", value: local.reminderServerUrl || "", onChange: (e) => commitField({ reminderServerUrl: e.target.value }), placeholder: "https://ton-serveur.exemple.com" })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, "Jeton (AUTH_TOKEN)"), /* @__PURE__ */ React.createElement("input", { className: "input", type: "password", value: local.reminderServerToken || "", onChange: (e) => commitField({ reminderServerToken: e.target.value }), placeholder: "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm", style: { flex: 1 }, disabled: pushStatus && pushStatus.type === "loading", onClick: handleConnectPush }, "Reconnecter"), /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm", style: { flex: 1 }, disabled: pushStatus && pushStatus.type === "loading", onClick: handleTestPush }, "Tester")), /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm", style: { color: "var(--text-faint)" }, disabled: pushStatus && pushStatus.type === "loading", onClick: handleResetDevices }, "Nettoyer les appareils fant\u00F4mes"), /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 10.5, lineHeight: 1.5 } }, "Sans serveur connect\u00E9, les rappels ne s'affichent que si l'app est ouverte.")))), /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "18px 0 8px" } }, /* @__PURE__ */ React.createElement("div", { className: "font-mono text-faint", style: { fontSize: 11, letterSpacing: "0.08em" } }, "FONTE \xB7 version ", APP_VERSION)))
 }
 const ONBOARDING_STEPS = 7;
 function OnboardingDots({ step }) {
