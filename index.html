@@ -4,6 +4,8 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
 <meta name="theme-color" content="#131417" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
 <title>FONTE — Suivi nutrition musculation</title>
 
 <!-- Icone affichee sur l'ecran d'accueil iOS. Les 3 fichiers PNG doivent se
@@ -1016,7 +1018,7 @@ function computeStreak(nutritionHistory, today) {
 }
 // Numero de version affiche en bas de l'ecran Profil. Sert a verifier d'un coup
 // d'oeil que la derniere mise a jour a bien ete prise en compte par l'iPhone.
-const APP_VERSION = "1.4";
+const APP_VERSION = "1.5";
 const MEAL_REMINDER_HOURS = {
   "petit-dej": 11,
   "dejeuner": 14,
@@ -2477,6 +2479,80 @@ function App() {
 const rootEl = document.getElementById("root");
 const root = ReactDOM.createRoot(rootEl);
 root.render(React.createElement(App));
+
+// ---------------------------------------------------------------------------
+// Detection de mise a jour.
+// Safari garde l'ancien index.html en cache : sans cela, publier une nouvelle
+// version ne change rien tant que l'utilisateur ne vide pas son cache.
+// On relit donc le fichier depuis le serveur en ignorant le cache, on compare
+// le numero de version qu'il contient a celui charge en memoire, et on propose
+// de recharger. Le rechargement ajoute ?v=<version> : l'adresse etant nouvelle,
+// Safari est oblige d'aller chercher le fichier a jour.
+// ---------------------------------------------------------------------------
+function showUpdateBanner(newVersion) {
+  if (document.getElementById("fonte-update-banner")) return;
+  const bar = document.createElement("div");
+  bar.id = "fonte-update-banner";
+  bar.setAttribute("style", [
+    "position:fixed",
+    "left:0; right:0",
+    "bottom:calc(78px + env(safe-area-inset-bottom))",
+    "z-index:9999",
+    "margin:0 auto",
+    "max-width:492px",
+    "width:calc(100% - 28px)",
+    "display:flex; align-items:center; gap:10px",
+    "background:#e8b94a; color:#15161a",
+    "border-radius:12px; padding:11px 12px",
+    "font-family:'Inter',sans-serif; font-size:13px; font-weight:600",
+    "box-shadow:0 10px 28px -12px rgba(0,0,0,0.8)"
+  ].join(";"));
+
+  const label = document.createElement("span");
+  label.style.flex = "1";
+  label.textContent = "Version " + newVersion + " disponible";
+
+  const btn = document.createElement("button");
+  btn.textContent = "Mettre \u00E0 jour";
+  btn.setAttribute("style", "flex-shrink:0; border:none; background:#15161a; color:#f2f0ea; border-radius:8px; padding:8px 12px; font-family:inherit; font-size:12.5px; font-weight:600;");
+  btn.onclick = function () {
+    try {
+      if (window.caches && caches.keys) {
+        caches.keys().then(function (ks) { ks.forEach(function (k) { caches.delete(k); }); });
+      }
+    } catch (e) {}
+    const base = location.href.split("?")[0].split("#")[0];
+    location.replace(base + "?v=" + encodeURIComponent(newVersion));
+  };
+
+  const close = document.createElement("button");
+  close.textContent = "\u2715";
+  close.setAttribute("style", "flex-shrink:0; border:none; background:none; color:#15161a; font-size:15px; padding:4px 2px; opacity:0.65;");
+  close.onclick = function () { bar.remove(); };
+
+  bar.appendChild(label);
+  bar.appendChild(btn);
+  bar.appendChild(close);
+  document.body.appendChild(bar);
+}
+
+function checkForUpdate() {
+  const base = location.href.split("?")[0].split("#")[0];
+  fetch(base + "?cb=" + Date.now(), { cache: "no-store" })
+    .then(function (r) { return r.ok ? r.text() : null; })
+    .then(function (text) {
+      if (!text) return;
+      const m = text.match(/APP_VERSION\s*=\s*"([^"]+)"/);
+      if (m && m[1] && m[1] !== APP_VERSION) showUpdateBanner(m[1]);
+    })
+    .catch(function () { /* hors ligne : on ne derange pas l'utilisateur */ });
+}
+
+setTimeout(checkForUpdate, 2500);
+// Nouvelle verification a chaque retour dans l'app.
+document.addEventListener("visibilitychange", function () {
+  if (!document.hidden) checkForUpdate();
+});
 </script>
 </body>
 </html>
