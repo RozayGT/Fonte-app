@@ -11,6 +11,33 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
 
+// ---------------------------------------------------------------------------
+// Chargement de la page : on va TOUJOURS voir le reseau en premier.
+// Sans cela, iOS sert indefiniment l'index.html qu'il a mis en cache et les
+// nouvelles versions n'arrivent jamais sans desinstaller l'app.
+// Le cache ne sert que de filet de securite quand le telephone est hors ligne.
+// ---------------------------------------------------------------------------
+const HTML_CACHE = "fonte-html-v1";
+
+self.addEventListener("fetch", (event) => {
+  const req = event.request;
+  if (req.method !== "GET") return;
+
+  const isPage = req.mode === "navigate" ||
+    (req.headers.get("accept") || "").includes("text/html");
+  if (!isPage) return;
+
+  event.respondWith(
+    fetch(req, { cache: "no-store" })
+      .then((res) => {
+        const copy = res.clone();
+        caches.open(HTML_CACHE).then((cache) => cache.put(req, copy)).catch(() => {});
+        return res;
+      })
+      .catch(() => caches.match(req).then((hit) => hit || caches.match("./")))
+  );
+});
+
 self.addEventListener("push", (event) => {
   let data = {};
   try {
