@@ -69,6 +69,7 @@ const Minus = (p) => /* @__PURE__ */ React.createElement(IconBase, { ...p }, /* 
 const Dumbbell = (p) => /* @__PURE__ */ React.createElement(IconBase, { ...p }, /* @__PURE__ */ React.createElement("rect", { x: "2", y: "9", width: "4", height: "6", rx: "1" }), /* @__PURE__ */ React.createElement("rect", { x: "18", y: "9", width: "4", height: "6", rx: "1" }), /* @__PURE__ */ React.createElement("line", { x1: "6", y1: "12", x2: "18", y2: "12" }));
 const BedDouble = (p) => /* @__PURE__ */ React.createElement(IconBase, { ...p }, /* @__PURE__ */ React.createElement("rect", { x: "3", y: "12", width: "18", height: "7", rx: "1" }), /* @__PURE__ */ React.createElement("path", { d: "M5 12 V9 A1 1 0 0 1 6 8 H10 A1 1 0 0 1 11 9 V12" }), /* @__PURE__ */ React.createElement("path", { d: "M13 12 V9 A1 1 0 0 1 14 8 H18 A1 1 0 0 1 19 9 V12" }), /* @__PURE__ */ React.createElement("line", { x1: "3", y1: "19", x2: "3", y2: "21" }), /* @__PURE__ */ React.createElement("line", { x1: "21", y1: "19", x2: "21", y2: "21" }));
 const Star = ({ fill = "none", ...p }) => /* @__PURE__ */ React.createElement(IconBase, { ...p }, /* @__PURE__ */ React.createElement("polygon", { points: "12.00,2.80 14.17,9.01 20.75,9.16 15.52,13.14 17.41,19.44 12.00,15.70 6.59,19.44 8.48,13.14 3.25,9.16 9.83,9.01", fill }));
+const Camera = (p) => /* @__PURE__ */ React.createElement(IconBase, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M3 8 h3.5 l1.5 -2 h8 l1.5 2 H21 v11 H3 Z" }), /* @__PURE__ */ React.createElement("circle", { cx: "12", cy: "13.5", r: "3.6" }));
 const Lightbulb = (p) => /* @__PURE__ */ React.createElement(IconBase, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M8 10 A4 4 0 1 1 16 10 C16 12.2 14.7 13 14 14.5 V17 H10 V14.5 C9.3 13 8 12.2 8 10 Z" }), /* @__PURE__ */ React.createElement("line", { x1: "10", y1: "20", x2: "14", y2: "20" }), /* @__PURE__ */ React.createElement("line", { x1: "10.5", y1: "17.5", x2: "13.5", y2: "17.5" }));
 const Droplet = (p) => /* @__PURE__ */ React.createElement(IconBase, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M12 3 C16 9 18.5 12.6 18.5 15.5 A6.5 6.5 0 0 1 5.5 15.5 C5.5 12.6 8 9 12 3 Z" }));
 const ShoppingBag = (p) => /* @__PURE__ */ React.createElement(IconBase, { ...p }, /* @__PURE__ */ React.createElement("path", { d: "M9 8 V6 A3 3 0 0 1 15 6 V8" }), /* @__PURE__ */ React.createElement("path", { d: "M6 8 H18 L17.2 20 A1 1 0 0 1 16.2 21 H7.8 A1 1 0 0 1 6.8 20 Z" }));
@@ -1022,7 +1023,7 @@ function computeStreak(nutritionHistory, today) {
 }
 // Numero de version affiche en bas de l'ecran Profil. Sert a verifier d'un coup
 // d'oeil que la derniere mise a jour a bien ete prise en compte par l'iPhone.
-const APP_VERSION = "2.0";
+const APP_VERSION = "2.1";
 const MEAL_REMINDER_HOURS = {
   "petit-dej": 11,
   "dejeuner": 14,
@@ -1690,6 +1691,208 @@ function RecipeTab({ date, mealId, onClose, onSaved }) {
   }
   return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, "Ingr\xE9dients"), /* @__PURE__ */ React.createElement("div", { style: { position: "relative", marginBottom: 8 } }, /* @__PURE__ */ React.createElement("input", { className: "input", placeholder: "Chercher un ingr\xE9dient \xE0 ajouter\u2026", value: query, onChange: (e) => setQuery(e.target.value) }), results.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "card-2", style: { position: "absolute", top: "110%", left: 0, right: 0, zIndex: 5, maxHeight: 200, overflowY: "auto" } }, results.map((f) => /* @__PURE__ */ React.createElement("div", { key: f.id, className: "food-row tap-row", onClick: () => addIngredient(f) }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13 } }, f.name), /* @__PURE__ */ React.createElement("span", { className: "font-mono text-faint", style: { fontSize: 11 } }, f.kcal, " kcal/100g"))))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 } }, ingredients.length === 0 && /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 12 } }, "Ajoutez au moins un ingr\xE9dient."), ingredients.map((i) => /* @__PURE__ */ React.createElement("div", { key: i.uid, className: "card-2", style: { padding: "8px 10px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12.5, flex: 1 } }, i.food.name), /* @__PURE__ */ React.createElement("input", { className: "input font-mono", type: "number", value: i.grams, onChange: (e) => updateGrams(i.uid, Number(e.target.value) || 0), style: { width: 66, padding: "6px 8px", fontSize: 12.5 } }), /* @__PURE__ */ React.createElement("button", { className: "btn-icon", style: { width: 28, height: 28 }, onClick: () => removeIngredient(i.uid) }, /* @__PURE__ */ React.createElement(X, { size: 12 }))))), ingredients.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "card-2", style: { padding: "10px 12px", marginBottom: 14, fontSize: 12 } }, /* @__PURE__ */ React.createElement("div", { className: "eyebrow", style: { marginBottom: 6 } }, "Total (", totalGrams, " g)"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between" }, className: "font-mono" }, /* @__PURE__ */ React.createElement("span", null, round(totals.kcal), " kcal"), /* @__PURE__ */ React.createElement("span", { className: "text-brass" }, round(totals.protein), "g P"), /* @__PURE__ */ React.createElement("span", { className: "text-steel" }, round(totals.carbs), "g G"), /* @__PURE__ */ React.createElement("span", { className: "text-rust" }, round(totals.fat), "g L"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, marginBottom: 14 } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 2 } }, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, "Nom de la recette"), /* @__PURE__ */ React.createElement("input", { className: "input", value: name, onChange: (e) => setName(e.target.value), placeholder: "Ex. Poke bowl maison" })), /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, "Portions"), /* @__PURE__ */ React.createElement("input", { className: "input font-mono", type: "number", min: "1", value: servings, onChange: (e) => setServings(Math.max(1, Number(e.target.value) || 1)) }))), /* @__PURE__ */ React.createElement("button", { className: "btn btn-primary btn-block", disabled: !canSave, style: { opacity: canSave ? 1 : 0.5 }, onClick: handleSave }, /* @__PURE__ */ React.createElement(Check, { size: 15 }), " Enregistrer la recette"));
 }
+// ---------------------------------------------------------------------------
+// Onglet Photo : on prend le repas en photo, le serveur le fait analyser, et on
+// obtient une liste d'aliments pre-remplie que l'on corrige avant d'enregistrer.
+// Les grammes restent modifiables : l'IA reconnait bien QUOI, beaucoup moins
+// COMBIEN, donc le dernier mot revient a l'utilisateur.
+// ---------------------------------------------------------------------------
+
+// Une photo d'iPhone pese plusieurs Mo. On la redimensionne et on la recompresse
+// dans le navigateur avant l'envoi : plus rapide, et cela evite de saturer la
+// limite de taille du serveur.
+function compressImage(file, maxSide, quality) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Lecture de la photo impossible."));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("Photo illisible."));
+      img.onload = () => {
+        const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL("image/jpeg", quality);
+        resolve({ dataUrl, base64: dataUrl.split(",")[1] });
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function PhotoTab({ date, mealId, onClose }) {
+  const { profile, addEntry } = useData();
+  const [status, setStatus] = useState("idle");
+  const [error, setError] = useState("");
+  const [preview, setPreview] = useState(null);
+  const [items, setItems] = useState([]);
+  const [note, setNote] = useState("");
+  const fileRef = useRef(null);
+
+  const serverUrl = profile.reminderServerUrl;
+  const token = profile.reminderServerToken;
+  const configured = Boolean(serverUrl && token);
+
+  const analyse = useCallback(async (file) => {
+    setError("");
+    setItems([]);
+    setNote("");
+    setStatus("compressing");
+    try {
+      const { dataUrl, base64 } = await compressImage(file, 1024, 0.75);
+      setPreview(dataUrl);
+      setStatus("analyzing");
+      const r = await serverFetch(serverUrl, "/api/analyze-photo", token, {
+        method: "POST",
+        body: JSON.stringify({ image: base64, mimeType: "image/jpeg" })
+      });
+      const found = (r && r.items) || [];
+      if (!found.length) {
+        setStatus("idle");
+        setError((r && r.note) || "Aucun aliment reconnu sur cette photo.");
+        return;
+      }
+      setItems(found.map((it, i) => ({ ...it, uid: "p" + i + "-" + Date.now(), keep: true })));
+      setNote((r && r.note) || "");
+      setStatus("done");
+    } catch (err) {
+      setStatus("idle");
+      setError((err && err.message) || "L'analyse a echoue.");
+    }
+  }, [serverUrl, token]);
+
+  const onFile = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) analyse(file);
+    e.target.value = "";
+  };
+
+  const setGrams = (uid, grams) => {
+    setItems((prev) => prev.map((it) => it.uid === uid ? { ...it, grams: Math.max(0, Number(grams) || 0) } : it));
+  };
+  const toggleKeep = (uid) => {
+    setItems((prev) => prev.map((it) => it.uid === uid ? { ...it, keep: !it.keep } : it));
+  };
+
+  const kept = items.filter((it) => it.keep && it.grams > 0);
+  const totals = kept.reduce((acc, it) => {
+    const f = it.grams / 100;
+    return {
+      kcal: acc.kcal + it.kcal * f,
+      protein: acc.protein + it.protein * f,
+      carbs: acc.carbs + it.carbs * f,
+      fat: acc.fat + it.fat * f
+    };
+  }, { kcal: 0, protein: 0, carbs: 0, fat: 0 });
+
+  const saveAll = () => {
+    kept.forEach((it) => {
+      addEntry(date, mealId, {
+        id: "photo-" + it.uid,
+        name: it.name,
+        category: "personnalise",
+        kcal: it.kcal,
+        protein: it.protein,
+        carbs: it.carbs,
+        fat: it.fat,
+        fiber: 0,
+        isCustom: true
+      }, it.grams);
+    });
+    onClose();
+  };
+
+  if (!configured) {
+    return /* @__PURE__ */ React.createElement("div", { className: "empty-state" },
+      "L'analyse par photo passe par ton serveur. Renseigne son adresse et son jeton dans Profil, puis reviens ici."
+    );
+  }
+
+  const busy = status === "compressing" || status === "analyzing";
+
+  return /* @__PURE__ */ React.createElement("div", null,
+    /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 12, lineHeight: 1.5, marginBottom: 12 } },
+      "Prends ton assiette en photo, de preference du dessus et bien eclairee. Les quantites sont des estimations : verifie les grammes avant d'enregistrer."
+    ),
+    /* @__PURE__ */ React.createElement("input", {
+      ref: fileRef,
+      type: "file",
+      accept: "image/*",
+      capture: "environment",
+      onChange: onFile,
+      style: { display: "none" }
+    }),
+    /* @__PURE__ */ React.createElement("button", {
+      className: "btn btn-primary btn-block",
+      disabled: busy,
+      onClick: () => fileRef.current && fileRef.current.click()
+    }, /* @__PURE__ */ React.createElement(Camera, { size: 16 }),
+      busy ? (status === "compressing" ? " Preparation\u2026" : " Analyse en cours\u2026") : (items.length ? " Reprendre une photo" : " Prendre une photo")
+    ),
+    preview && /* @__PURE__ */ React.createElement("img", {
+      src: preview,
+      alt: "",
+      style: { width: "100%", borderRadius: 12, marginTop: 12, display: "block", maxHeight: 170, objectFit: "cover" }
+    }),
+    error && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, lineHeight: 1.4, color: "var(--rust)", marginTop: 12 } }, error),
+    busy && /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 12, marginTop: 12 } },
+      "Cela prend quelques secondes\u2026"
+    ),
+    items.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 14 } },
+      /* @__PURE__ */ React.createElement("div", { className: "eyebrow", style: { marginBottom: 8 } }, "Aliments reconnus"),
+      /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8, maxHeight: "34vh", overflowY: "auto" } },
+        items.map((it) => /* @__PURE__ */ React.createElement("div", {
+          key: it.uid,
+          className: "card-2",
+          style: { padding: "10px 12px", display: "flex", alignItems: "center", gap: 10, opacity: it.keep ? 1 : 0.45 }
+        },
+          /* @__PURE__ */ React.createElement("button", {
+            className: "btn-icon",
+            style: { width: 26, height: 26, flexShrink: 0 },
+            onClick: () => toggleKeep(it.uid)
+          }, it.keep ? /* @__PURE__ */ React.createElement(Check, { size: 13 }) : /* @__PURE__ */ React.createElement(X, { size: 13 })),
+          /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } },
+            /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, it.name),
+            /* @__PURE__ */ React.createElement("div", { className: "text-faint font-mono", style: { fontSize: 10.5 } },
+              Math.round(it.kcal * it.grams / 100), " kcal",
+              it.confidence === "basse" ? " \u00B7 estimation incertaine" : ""
+            )
+          ),
+          /* @__PURE__ */ React.createElement("input", {
+            className: "input font-mono",
+            type: "number",
+            value: it.grams,
+            onChange: (e) => setGrams(it.uid, e.target.value),
+            style: { width: 68, padding: "6px 8px", fontSize: 12.5, flexShrink: 0 }
+          }),
+          /* @__PURE__ */ React.createElement("span", { className: "text-faint", style: { fontSize: 11, flexShrink: 0 } }, "g")
+        ))
+      ),
+      note && /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 11, lineHeight: 1.45, marginTop: 10 } }, note),
+      /* @__PURE__ */ React.createElement("div", { className: "card-2", style: { padding: "10px 12px", marginTop: 10, fontSize: 12 } },
+        /* @__PURE__ */ React.createElement("div", { className: "eyebrow", style: { marginBottom: 6 } }, "Total du repas"),
+        /* @__PURE__ */ React.createElement("div", { className: "font-mono", style: { display: "flex", justifyContent: "space-between" } },
+          /* @__PURE__ */ React.createElement("span", null, Math.round(totals.kcal), " kcal"),
+          /* @__PURE__ */ React.createElement("span", { className: "text-brass" }, Math.round(totals.protein), "g P"),
+          /* @__PURE__ */ React.createElement("span", { className: "text-steel" }, Math.round(totals.carbs), "g G"),
+          /* @__PURE__ */ React.createElement("span", { className: "text-rust" }, Math.round(totals.fat), "g L")
+        )
+      ),
+      /* @__PURE__ */ React.createElement("button", {
+        className: "btn btn-primary btn-block",
+        style: { marginTop: 12, opacity: kept.length ? 1 : 0.5 },
+        disabled: !kept.length,
+        onClick: saveAll
+      }, /* @__PURE__ */ React.createElement(Plus, { size: 15 }), " Ajouter ", kept.length, " aliment", kept.length > 1 ? "s" : "")
+    )
+  );
+}
+
 function BarcodeTab({ date, mealId, onClose }) {
   const { addCustomFood, addEntry } = useData();
   const [code, setCode] = useState("");
@@ -1776,9 +1979,10 @@ function FoodPickerModal({ date, initialMealId, presetFood, onClose }) {
     { id: "search", label: "Recherche" },
     { id: "create", label: "Cr\xE9er" },
     { id: "recipe", label: "Recette" },
+    { id: "photo", label: "Photo" },
     { id: "barcode", label: "Scan" }
   ];
-  return /* @__PURE__ */ React.createElement(Modal, { title: "Ajouter un aliment", onClose }, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 14 } }, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, "Repas"), /* @__PURE__ */ React.createElement("div", { className: "scroll-x" }, mealSlots.map((m) => /* @__PURE__ */ React.createElement("span", { key: m.id, className: "chip" + (mealId === m.id ? " active" : ""), onClick: () => setMealId(m.id) }, m.label)))), /* @__PURE__ */ React.createElement("div", { className: "scroll-x", style: { marginBottom: 16 } }, tabs.map((t) => /* @__PURE__ */ React.createElement("span", { key: t.id, className: "chip" + (subTab === t.id ? " active" : ""), onClick: () => setSubTab(t.id) }, t.id === "ideas" && /* @__PURE__ */ React.createElement(Lightbulb, { size: 12 }), t.label))), subTab === "ideas" && /* @__PURE__ */ React.createElement(MealIdeasTab, { date, mealId, onClose, onPickManually: () => setSubTab("search") }), subTab === "search" && /* @__PURE__ */ React.createElement(SearchTab, { date, mealId, onClose, initialSelected: presetFood }), subTab === "create" && /* @__PURE__ */ React.createElement(CreateFoodTab, { date, mealId, onClose, onSaved: () => setSubTab("search") }), subTab === "recipe" && /* @__PURE__ */ React.createElement(RecipeTab, { date, mealId, onClose, onSaved: () => setSubTab("search") }), subTab === "barcode" && /* @__PURE__ */ React.createElement(BarcodeTab, { date, mealId, onClose }));
+  return /* @__PURE__ */ React.createElement(Modal, { title: "Ajouter un aliment", onClose }, /* @__PURE__ */ React.createElement("div", { style: { marginBottom: 14 } }, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, "Repas"), /* @__PURE__ */ React.createElement("div", { className: "scroll-x" }, mealSlots.map((m) => /* @__PURE__ */ React.createElement("span", { key: m.id, className: "chip" + (mealId === m.id ? " active" : ""), onClick: () => setMealId(m.id) }, m.label)))), /* @__PURE__ */ React.createElement("div", { className: "scroll-x", style: { marginBottom: 16 } }, tabs.map((t) => /* @__PURE__ */ React.createElement("span", { key: t.id, className: "chip" + (subTab === t.id ? " active" : ""), onClick: () => setSubTab(t.id) }, t.id === "ideas" && /* @__PURE__ */ React.createElement(Lightbulb, { size: 12 }), t.id === "photo" && /* @__PURE__ */ React.createElement(Camera, { size: 12 }), t.label))), subTab === "photo" && /* @__PURE__ */ React.createElement(PhotoTab, { date, mealId, onClose }), subTab === "ideas" && /* @__PURE__ */ React.createElement(MealIdeasTab, { date, mealId, onClose, onPickManually: () => setSubTab("search") }), subTab === "search" && /* @__PURE__ */ React.createElement(SearchTab, { date, mealId, onClose, initialSelected: presetFood }), subTab === "create" && /* @__PURE__ */ React.createElement(CreateFoodTab, { date, mealId, onClose, onSaved: () => setSubTab("search") }), subTab === "recipe" && /* @__PURE__ */ React.createElement(RecipeTab, { date, mealId, onClose, onSaved: () => setSubTab("search") }), subTab === "barcode" && /* @__PURE__ */ React.createElement(BarcodeTab, { date, mealId, onClose }));
 }
 function FoodDetailModal({ food, onClose, onDeleted }) {
   const { mealSlots, addEntry, removeCustomFood, today, favoriteFoodIds, toggleFavorite } = useData();
