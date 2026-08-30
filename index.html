@@ -1040,7 +1040,7 @@ function computeStreak(nutritionHistory, today) {
 }
 // Numero de version affiche en bas de l'ecran Profil. Sert a verifier d'un coup
 // d'oeil que la derniere mise a jour a bien ete prise en compte par l'iPhone.
-const APP_VERSION = "2.2";
+const APP_VERSION = "2.3";
 const MEAL_REMINDER_HOURS = {
   "petit-dej": 11,
   "dejeuner": 14,
@@ -1090,12 +1090,53 @@ function urlBase64ToUint8Array(base64String) {
   for (let i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
   return outputArray;
 }
+// Adresse du serveur commune a tout le monde : plus personne n'a a la taper.
+const DEFAULT_SERVER_URL = "https://fonte-server-7umm.onrender.com";
+
+// Identifiant du compte courant. Il est pose une fois au demarrage par App et
+// accompagne ensuite chaque appel : c'est lui qui dit au serveur a qui
+// appartiennent les donnees. Le stocker ici evite de le passer a la main dans
+// la trentaine d'appels existants, et donc d'en oublier un.
+let CURRENT_USER_ID = null;
+function setCurrentUserId(id) { CURRENT_USER_ID = id || null; }
+
+// Genere un identifiant impossible a deviner (128 bits d'alea).
+function makeUserId() {
+  const bytes = new Uint8Array(16);
+  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+    crypto.getRandomValues(bytes);
+  } else {
+    for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+  }
+  let s = "";
+  for (const b of bytes) s += b.toString(16).padStart(2, "0");
+  return "u" + s; // 33 caracteres, conforme au format attendu par le serveur
+}
+
+// Code de liaison : un seul texte a copier-coller, plutot que deux champs.
+// Sans identifiant, c'est une invitation pour un ami ; avec, c'est la cle de
+// restauration de son propre compte.
+function encodeLinkCode(obj) {
+  const json = JSON.stringify(obj);
+  const b64 = btoa(unescape(encodeURIComponent(json)));
+  return "FONTE-" + b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function decodeLinkCode(code) {
+  const raw = String(code || "").trim().replace(/^FONTE-/i, "");
+  const b64 = raw.replace(/-/g, "+").replace(/_/g, "/");
+  const json = decodeURIComponent(escape(atob(b64)));
+  const obj = JSON.parse(json);
+  if (!obj || typeof obj !== "object" || !obj.t) throw new Error("Code invalide.");
+  return obj;
+}
+
 async function serverFetch(serverUrl, path, token, options) {
   const res = await fetch(serverUrl.replace(/\/+$/, "") + path, {
     ...options,
     headers: {
       "Content-Type": "application/json",
       Authorization: "Bearer " + token,
+      ...(CURRENT_USER_ID ? { "X-User-Id": CURRENT_USER_ID } : {}),
       ...(options && options.headers || {})
     }
   });
@@ -2344,7 +2385,7 @@ function GuideModal({ onClose }) {
 }
 
 function ProfileScreen() {
-  const { profile, setProfile, replayOnboarding, setWeightHistory, today, backupState, restoreFromServer } = useData();
+  const { profile, setProfile, replayOnboarding, setWeightHistory, today, backupState, restoreFromServer, userId, setUserId } = useData();
   const [local, setLocal] = useState(profile);
   const [goalTab, setGoalTab] = useState(profile.activeGoal);
   const [pushStatus, setPushStatus] = useState(null);
@@ -2353,6 +2394,39 @@ function ProfileScreen() {
   const [showPushAdvanced, setShowPushAdvanced] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [restoreStatus, setRestoreStatus] = useState(null);
+  const [linkInput, setLinkInput] = useState("");
+  const [linkStatus, setLinkStatus] = useState(null);
+  const [copied, setCopied] = useState("");
+
+  const copyText = useCallback((text, tag) => {
+    const done = () => { setCopied(tag); setTimeout(() => setCopied(""), 1800); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, done);
+    } else {
+      done();
+    }
+  }, []);
+
+  // Applique un code colle : celui d'une invitation (adresse + code d'acces) ou
+  // celui de son propre compte (qui contient en plus l'identifiant a reprendre).
+  const applyLinkCode = useCallback(() => {
+    try {
+      const obj = decodeLinkCode(linkInput);
+      const patch = { reminderServerToken: obj.t };
+      if (obj.u) patch.reminderServerUrl = obj.u;
+      commitField(patch);
+      if (obj.i) {
+        setUserId(() => obj.i);
+        setCurrentUserId(obj.i);
+        setLinkStatus({ type: "success", message: "Compte repris. Appuie maintenant sur Restaurer depuis le serveur." });
+      } else {
+        setLinkStatus({ type: "success", message: "Serveur configur\u00E9. Active les rappels ci-dessus." });
+      }
+      setLinkInput("");
+    } catch (e) {
+      setLinkStatus({ type: "error", message: "Code non reconnu. V\u00E9rifie qu'il est copi\u00E9 en entier." });
+    }
+  }, [linkInput, setUserId]);
   const handleRestore = useCallback(async () => {
     setRestoreStatus({ type: "loading", message: "R\u00E9cup\u00E9ration\u2026" });
     try {
@@ -2516,7 +2590,7 @@ function ProfileScreen() {
     if (next && typeof Notification !== "undefined" && Notification.permission === "default") {
       Notification.requestPermission();
     }
-  } })), local.remindersEnabled && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, borderTop: "1px solid var(--border-soft)", paddingTop: 11 } }, /* @__PURE__ */ React.createElement("span", { className: "status-dot", style: { background: local.pushSubscribed ? "var(--green, #7ec98f)" : "var(--text-faint)" } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, flex: 1, color: local.pushSubscribed ? "var(--text-dim)" : "var(--text-faint)" } }, local.pushSubscribed ? "Actifs m\u00EAme app ferm\u00E9e" : "Actifs seulement app ouverte"), !local.pushSubscribed && /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm", style: { flexShrink: 0, opacity: pushStatus && pushStatus.type === "loading" ? 0.6 : 1 }, disabled: pushStatus && pushStatus.type === "loading", onClick: handleConnectPush }, pushStatus && pushStatus.type === "loading" ? "Connexion\u2026" : "Connecter")), pushStatus && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11.5, lineHeight: 1.4, color: pushStatus.type === "error" ? "var(--rust)" : pushStatus.type === "success" ? "var(--green, #7ec98f)" : "var(--text-faint)" } }, pushStatus.message), /* @__PURE__ */ React.createElement("button", { style: { background: "none", border: "none", padding: 0, textAlign: "left", color: "var(--text-faint)", fontSize: 11, fontFamily: "inherit", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }, onClick: () => setShowPushAdvanced((v) => !v) }, showPushAdvanced ? "\u2212" : "+", " R\u00E9glages avanc\u00E9s"), showPushAdvanced && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10, borderTop: "1px solid var(--border-soft)", paddingTop: 12 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, "URL du serveur"), /* @__PURE__ */ React.createElement("input", { className: "input", value: local.reminderServerUrl || "", onChange: (e) => commitField({ reminderServerUrl: e.target.value }), placeholder: "https://ton-serveur.exemple.com" })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, "Jeton (AUTH_TOKEN)"), /* @__PURE__ */ React.createElement("input", { className: "input", type: "password", value: local.reminderServerToken || "", onChange: (e) => commitField({ reminderServerToken: e.target.value }), placeholder: "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm", style: { flex: 1 }, disabled: pushStatus && pushStatus.type === "loading", onClick: handleConnectPush }, "Reconnecter"), /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm", style: { flex: 1 }, disabled: pushStatus && pushStatus.type === "loading", onClick: handleTestPush }, "Tester")), /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm", style: { color: "var(--text-faint)" }, disabled: pushStatus && pushStatus.type === "loading", onClick: handleResetDevices }, "Nettoyer les appareils fant\u00F4mes"), /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 10.5, lineHeight: 1.5 } }, "Sans serveur connect\u00E9, les rappels ne s'affichent que si l'app est ouverte."))), /* @__PURE__ */ React.createElement("div", { className: "divider-label" }, /* @__PURE__ */ React.createElement("span", { className: "eyebrow" }, "Sauvegarde")), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 16, display: "flex", flexDirection: "column", gap: 11 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ React.createElement("span", { className: "status-dot", style: { background: !local.reminderServerUrl || !local.reminderServerToken ? "var(--text-faint)" : backupState && backupState.status === "error" ? "var(--rust)" : backupState && backupState.savedAt ? "var(--green, #7ec98f)" : "var(--brass)" } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12.5, flex: 1, color: "var(--text-dim)" } }, !local.reminderServerUrl || !local.reminderServerToken ? "Inactive \u2014 renseigne le serveur ci-dessus" : backupState && backupState.status === "saving" ? "Enregistrement\u2026" : backupState && backupState.status === "error" ? "Derni\u00E8re tentative \u00E9chou\u00E9e" : backupState && backupState.savedAt ? "\u00C0 jour \u00B7 " + new Date(backupState.savedAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "En attente de modification")), /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 11, lineHeight: 1.5 } }, "Tes repas, poids, aliments perso et r\u00E9glages sont envoy\u00E9s au serveur d\u00E8s qu'ils changent. Apr\u00E8s une r\u00E9installation, remets l'adresse et le jeton ci-dessus puis appuie sur Restaurer."), /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm", disabled: restoreStatus && restoreStatus.type === "loading", onClick: handleRestore }, restoreStatus && restoreStatus.type === "loading" ? "R\u00E9cup\u00E9ration\u2026" : "Restaurer depuis le serveur"), restoreStatus && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11.5, lineHeight: 1.4, color: restoreStatus.type === "error" ? "var(--rust)" : restoreStatus.type === "success" ? "var(--green, #7ec98f)" : "var(--text-faint)" } }, restoreStatus.message))), /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "18px 0 8px" } }, /* @__PURE__ */ React.createElement("div", { className: "font-mono text-faint", style: { fontSize: 11, letterSpacing: "0.08em" } }, "FONTE \xB7 version ", APP_VERSION)))
+  } })), local.remindersEnabled && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, borderTop: "1px solid var(--border-soft)", paddingTop: 11 } }, /* @__PURE__ */ React.createElement("span", { className: "status-dot", style: { background: local.pushSubscribed ? "var(--green, #7ec98f)" : "var(--text-faint)" } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, flex: 1, color: local.pushSubscribed ? "var(--text-dim)" : "var(--text-faint)" } }, local.pushSubscribed ? "Actifs m\u00EAme app ferm\u00E9e" : "Actifs seulement app ouverte"), !local.pushSubscribed && /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm", style: { flexShrink: 0, opacity: pushStatus && pushStatus.type === "loading" ? 0.6 : 1 }, disabled: pushStatus && pushStatus.type === "loading", onClick: handleConnectPush }, pushStatus && pushStatus.type === "loading" ? "Connexion\u2026" : "Connecter")), pushStatus && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11.5, lineHeight: 1.4, color: pushStatus.type === "error" ? "var(--rust)" : pushStatus.type === "success" ? "var(--green, #7ec98f)" : "var(--text-faint)" } }, pushStatus.message), /* @__PURE__ */ React.createElement("button", { style: { background: "none", border: "none", padding: 0, textAlign: "left", color: "var(--text-faint)", fontSize: 11, fontFamily: "inherit", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }, onClick: () => setShowPushAdvanced((v) => !v) }, showPushAdvanced ? "\u2212" : "+", " R\u00E9glages avanc\u00E9s"), showPushAdvanced && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10, borderTop: "1px solid var(--border-soft)", paddingTop: 12 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, "URL du serveur"), /* @__PURE__ */ React.createElement("input", { className: "input", value: local.reminderServerUrl || "", onChange: (e) => commitField({ reminderServerUrl: e.target.value }), placeholder: "https://ton-serveur.exemple.com" })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, "Jeton (AUTH_TOKEN)"), /* @__PURE__ */ React.createElement("input", { className: "input", type: "password", value: local.reminderServerToken || "", onChange: (e) => commitField({ reminderServerToken: e.target.value }), placeholder: "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm", style: { flex: 1 }, disabled: pushStatus && pushStatus.type === "loading", onClick: handleConnectPush }, "Reconnecter"), /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm", style: { flex: 1 }, disabled: pushStatus && pushStatus.type === "loading", onClick: handleTestPush }, "Tester")), /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm", style: { color: "var(--text-faint)" }, disabled: pushStatus && pushStatus.type === "loading", onClick: handleResetDevices }, "Nettoyer les appareils fant\u00F4mes"), /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 10.5, lineHeight: 1.5 } }, "Sans serveur connect\u00E9, les rappels ne s'affichent que si l'app est ouverte."))), /* @__PURE__ */ React.createElement("div", { className: "divider-label" }, /* @__PURE__ */ React.createElement("span", { className: "eyebrow" }, "Compte et partage")), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 16, display: "flex", flexDirection: "column", gap: 14 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, marginBottom: 4 } }, "Inviter un ami"), /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 11, lineHeight: 1.5, marginBottom: 8 } }, "Envoie-lui le lien de l'app, puis ce code. Il aura ses propres donn\u00E9es, ses rappels et sa sauvegarde."), /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm btn-block", disabled: !local.reminderServerToken, onClick: () => copyText(encodeLinkCode({ u: local.reminderServerUrl || DEFAULT_SERVER_URL, t: local.reminderServerToken }), "invite") }, copied === "invite" ? "Code copi\u00E9" : "Copier le code d'invitation")), /* @__PURE__ */ React.createElement("div", { style: { borderTop: "1px solid var(--border-soft)", paddingTop: 13 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, marginBottom: 4 } }, "Ma cl\u00E9 de compte"), /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 11, lineHeight: 1.5, marginBottom: 8 } }, "Note-la quelque part. Elle seule permet de retrouver tes donn\u00E9es sur un autre t\u00E9l\u00E9phone ou apr\u00E8s une r\u00E9installation."), /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm btn-block", disabled: !local.reminderServerToken || !userId, onClick: () => copyText(encodeLinkCode({ u: local.reminderServerUrl || DEFAULT_SERVER_URL, t: local.reminderServerToken, i: userId }), "key") }, copied === "key" ? "Cl\u00E9 copi\u00E9e" : "Copier ma cl\u00E9 de compte")), /* @__PURE__ */ React.createElement("div", { style: { borderTop: "1px solid var(--border-soft)", paddingTop: 13 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, marginBottom: 4 } }, "Utiliser un code"), /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 11, lineHeight: 1.5, marginBottom: 8 } }, "Colle ici une invitation re\u00E7ue, ou ta propre cl\u00E9 de compte pour te reconnecter."), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("input", { className: "input font-mono", style: { fontSize: 12 }, placeholder: "FONTE-\u2026", value: linkInput, onChange: (e) => setLinkInput(e.target.value) }), /* @__PURE__ */ React.createElement("button", { className: "btn btn-primary", disabled: !linkInput.trim(), onClick: applyLinkCode }, "OK")), linkStatus && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11.5, lineHeight: 1.4, marginTop: 8, color: linkStatus.type === "error" ? "var(--rust)" : "var(--green, #7ec98f)" } }, linkStatus.message))), /* @__PURE__ */ React.createElement("div", { className: "divider-label" }, /* @__PURE__ */ React.createElement("span", { className: "eyebrow" }, "Sauvegarde")), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 16, display: "flex", flexDirection: "column", gap: 11 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ React.createElement("span", { className: "status-dot", style: { background: !local.reminderServerUrl || !local.reminderServerToken ? "var(--text-faint)" : backupState && backupState.status === "error" ? "var(--rust)" : backupState && backupState.savedAt ? "var(--green, #7ec98f)" : "var(--brass)" } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12.5, flex: 1, color: "var(--text-dim)" } }, !local.reminderServerUrl || !local.reminderServerToken ? "Inactive \u2014 renseigne le serveur ci-dessus" : backupState && backupState.status === "saving" ? "Enregistrement\u2026" : backupState && backupState.status === "error" ? "Derni\u00E8re tentative \u00E9chou\u00E9e" : backupState && backupState.savedAt ? "\u00C0 jour \u00B7 " + new Date(backupState.savedAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "En attente de modification")), /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 11, lineHeight: 1.5 } }, "Tes repas, poids, aliments perso et r\u00E9glages sont envoy\u00E9s au serveur d\u00E8s qu'ils changent. Apr\u00E8s une r\u00E9installation, remets l'adresse et le jeton ci-dessus puis appuie sur Restaurer."), /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm", disabled: restoreStatus && restoreStatus.type === "loading", onClick: handleRestore }, restoreStatus && restoreStatus.type === "loading" ? "R\u00E9cup\u00E9ration\u2026" : "Restaurer depuis le serveur"), restoreStatus && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11.5, lineHeight: 1.4, color: restoreStatus.type === "error" ? "var(--rust)" : restoreStatus.type === "success" ? "var(--green, #7ec98f)" : "var(--text-faint)" } }, restoreStatus.message))), /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "18px 0 8px" } }, /* @__PURE__ */ React.createElement("div", { className: "font-mono text-faint", style: { fontSize: 11, letterSpacing: "0.08em" } }, "FONTE \xB7 version ", APP_VERSION)))
 }
 const ONBOARDING_STEPS = 7;
 function OnboardingDots({ step }) {
@@ -2609,9 +2683,11 @@ function App() {
   const [favoriteFoodIds, setFavoriteFoodIds, favReady] = usePersisted("favoriteFoodIds", []);
   const [recentFoodIds, setRecentFoodIds, recentReady] = usePersisted("recentFoodIds", []);
   const [waterHistory, setWaterHistory, waterReady] = usePersisted("waterHistory", {});
+  const [userId, setUserId, userIdReady] = usePersisted("userId", null);
   const profile = useMemo(() => ({
     ...DEFAULT_PROFILE,
     ...profileRaw,
+    reminderServerUrl: profileRaw.reminderServerUrl || DEFAULT_SERVER_URL,
     goalSettings: { ...DEFAULT_PROFILE.goalSettings, ...profileRaw.goalSettings || {} },
     cycling: { ...DEFAULT_PROFILE.cycling, ...profileRaw.cycling || {} }
   }), [profileRaw]);
@@ -2622,7 +2698,20 @@ function App() {
   const [lastRemoved, setLastRemoved] = useState(null);
   const notifiedRef = useRef(/* @__PURE__ */ new Set());
   const today = todayKey();
-  const allReady = profileReady && customReady && weightReady && mealsReady && historyReady && lastReady && favReady && recentReady && waterReady;
+  // Un identifiant est cree une seule fois, au tout premier lancement, puis
+  // conserve. C'est lui qui separe les donnees de chaque personne sur le serveur.
+  useEffect(() => {
+    if (!userIdReady) return;
+    if (!userId) {
+      const fresh = makeUserId();
+      setUserId(() => fresh);
+      setCurrentUserId(fresh);
+    } else {
+      setCurrentUserId(userId);
+    }
+  }, [userIdReady, userId, setUserId]);
+
+  const allReady = profileReady && customReady && weightReady && mealsReady && historyReady && lastReady && favReady && recentReady && waterReady && userIdReady;
 
   // -------------------------------------------------------------------------
   // Sauvegarde continue vers le serveur.
@@ -2799,6 +2888,8 @@ function App() {
     today,
     backupState,
     restoreFromServer,
+    userId,
+    setUserId,
     lastRemoved,
     undoRemove,
     moveEntry,
