@@ -1040,7 +1040,7 @@ function computeStreak(nutritionHistory, today) {
 }
 // Numero de version affiche en bas de l'ecran Profil. Sert a verifier d'un coup
 // d'oeil que la derniere mise a jour a bien ete prise en compte par l'iPhone.
-const APP_VERSION = "2.4";
+const APP_VERSION = "2.5";
 const MEAL_REMINDER_HOURS = {
   "petit-dej": 11,
   "dejeuner": 14,
@@ -2219,96 +2219,109 @@ function MacroSplitBar({ proteinPct, carbsPct, fatPct }) {
 // ---------------------------------------------------------------------------
 const GUIDE_PAGES = [
   {
-    title: "Bienvenue dans FONTE",
-    body: "FONTE suit ce que tu manges et le compare \u00E0 des objectifs calcul\u00E9s sur ton corps et ton objectif. Ce guide fait le tour des fonctions en quelques \u00E9crans.",
+    title: "Comment marche FONTE",
+    body: "FONTE compare ce que tu manges \u00E0 des objectifs calcul\u00E9s sur ton corps et ton but. Ce guide fait le tour des fonctions en quelques \u00E9crans.",
     items: [
       "Glisse vers la gauche pour avancer.",
-      "Tu peux le rouvrir quand tu veux depuis le Profil."
+      "Tu peux le rouvrir quand tu veux : Profil, puis Guide d'utilisation."
     ]
   },
   {
     title: "Accueil : ta journ\u00E9e",
     body: "Le premier \u00E9cran r\u00E9sume o\u00F9 tu en es aujourd'hui.",
     items: [
-      "<b>Calories restantes</b> et les trois barres prot\u00E9ines, glucides, lipides.",
+      "<b>Calories restantes</b> au centre, puis les trois barres prot\u00E9ines, glucides, lipides.",
       "<b>Jour d'entra\u00EEnement / repos</b> : le bouton en haut bascule le jour et ajuste les objectifs.",
-      "<b>Ajout rapide</b> : les aliments que tu loggues le plus, en un appui.",
-      "<b>Dernier repas logg\u00E9</b> pour v\u00E9rifier d'un coup d'\u0153il."
+      "<b>Ajout rapide</b> : une puce par repas, pour logger sans chercher.",
+      "Un bandeau appara\u00EEt si un repas principal est en retard."
     ]
   },
   {
-    title: "Ajouter un aliment",
-    body: "Le bouton jaune ouvre cinq fa\u00E7ons d'ajouter, selon la situation.",
+    title: "Cinq fa\u00E7ons d'ajouter",
+    body: "Le bouton jaune ouvre la fen\u00EAtre d'ajout. Choisis l'onglet selon la situation.",
     items: [
-      "<b>Id\u00E9es</b> : des combinaisons calcul\u00E9es \u00E0 partir de ce qu'il te reste \u00E0 manger. Un appui ajoute tout le repas.",
+      "<b>Id\u00E9es</b> : des combinaisons calcul\u00E9es sur ce qu'il te reste \u00E0 manger. Un appui ajoute tout le repas.",
       "<b>Recherche</b> : la base d'aliments, avec la dict\u00E9e vocale.",
-      "<b>Cr\u00E9er</b> : ton propre aliment, gard\u00E9 pour la suite.",
-      "<b>Recette</b> : plusieurs ingr\u00E9dients, un nombre de portions, et FONTE calcule la part.",
-      "<b>Scan</b> : le code-barres d'un produit emball\u00E9."
+      "<b>Cr\u00E9er</b> : ton propre aliment, conserv\u00E9 pour la suite.",
+      "<b>Recette</b> : plusieurs ingr\u00E9dients, un nombre de portions, FONTE calcule la part.",
+      "<b>Photo</b> et <b>Scan</b> : d\u00E9taill\u00E9s sur les deux \u00E9crans suivants."
     ]
   },
   {
-    title: "Suggestions de macros",
-    body: "Quand un macro est en retard sur les autres, l'Accueil propose des aliments qui le comblent efficacement.",
+    title: "Photo : ton assiette",
+    body: "Onglet Photo. Tu photographies le repas, l'app le fait analyser et te propose les aliments reconnus.",
     items: [
-      "Le titre indique lequel : \u00AB Pour combler tes prot\u00E9ines \u00BB.",
-      "La quantit\u00E9 propos\u00E9e est une portion r\u00E9aliste, pas un chiffre th\u00E9orique.",
-      "Un appui pr\u00E9-remplit l'ajout."
+      "Cadre du dessus, avec de la lumi\u00E8re. <b>Galerie</b> permet d'utiliser une photo d\u00E9j\u00E0 prise.",
+      "<b>Corrige toujours les grammes</b> : l'analyse reconna\u00EEt bien QUOI, beaucoup moins COMBIEN.",
+      "D\u00E9coche ce qui est faux, le total se recalcule en direct.",
+      "\u00AB Estimation incertaine \u00BB signale un aliment mal identifi\u00E9 : v\u00E9rifie-le en priorit\u00E9."
     ]
   },
   {
-    title: "Hydratation et poids",
-    body: "Deux suivis rapides, sous les macros.",
+    title: "Scan : produits emball\u00E9s",
+    body: "Onglet Scan, pour tout ce qui a un code-barres. Les valeurs viennent d'Open Food Facts.",
     items: [
+      "<b>Photographier le code-barres</b> \u00E9vite de taper les treize chiffres.",
+      "Le champ manuel reste l\u00E0 si la photo ne passe pas.",
+      "Le produit trouv\u00E9 est enregistr\u00E9 dans tes aliments : la fois d'apr\u00E8s, une recherche suffit."
+    ]
+  },
+  {
+    title: "Suggestions et hydratation",
+    body: "Deux aides sur l'Accueil, sous les macros.",
+    items: [
+      "Quand un macro est en retard, FONTE propose trois aliments qui le comblent, avec une portion r\u00E9aliste.",
       "<b>Eau</b> : objectif calcul\u00E9 sur ton poids, boutons de 250 et 500 ml.",
-      "<b>Poids actuel</b> : appuie sur le crayon pour le mettre \u00E0 jour. Chaque saisie alimente la courbe de l'onglet Progr\u00E8s."
+      "<b>Poids actuel</b> : le crayon le met \u00E0 jour, et alimente la courbe des Progr\u00E8s."
     ]
   },
   {
     title: "Journal",
-    body: "Le deuxi\u00E8me onglet montre n'importe quelle journ\u00E9e, pass\u00E9e ou \u00E0 venir, repas par repas.",
+    body: "Le deuxi\u00E8me onglet montre n'importe quelle journ\u00E9e, repas par repas.",
     items: [
-      "Appuie sur un aliment logg\u00E9 pour corriger les grammes ou le supprimer.",
-      "<b>Dupliquer ce jour</b> : recopie une journ\u00E9e enti\u00E8re vers une autre date.",
-      "<b>G\u00E9rer les repas</b> : renomme, ajoute ou retire des cr\u00E9neaux de repas.",
-      "<b>Liste de courses</b> : agr\u00E8ge les aliments pr\u00E9vus sur 7 ou 14 jours, pr\u00EAte \u00E0 copier."
+      "Appuie sur un aliment logg\u00E9 pour corriger les grammes, le <b>d\u00E9placer vers un autre repas</b> ou le retirer.",
+      "Un retrait par erreur ? Le bandeau <b>Annuler</b> le remet \u00E0 sa place.",
+      "<b>Dupliquer ce jour</b> recopie une journ\u00E9e vers une autre date.",
+      "<b>Liste de courses</b> agr\u00E8ge les aliments pr\u00E9vus sur 7 ou 14 jours."
     ]
   },
   {
-    title: "Aliments",
-    body: "Le troisi\u00E8me onglet est ta biblioth\u00E8que.",
+    title: "Aliments et Progr\u00E8s",
+    body: "Le troisi\u00E8me onglet est ta biblioth\u00E8que, le quatri\u00E8me mesure la r\u00E9gularit\u00E9.",
     items: [
-      "Cherche dans la base compl\u00E8te ou filtre par cat\u00E9gorie.",
       "L'\u00E9toile met un aliment en favori : il remonte dans les recherches et les id\u00E9es.",
-      "<b>Mes aliments</b> regroupe ceux que tu as cr\u00E9\u00E9s toi-m\u00EAme."
-    ]
-  },
-  {
-    title: "Progr\u00E8s",
-    body: "Le quatri\u00E8me onglet mesure la r\u00E9gularit\u00E9, pas seulement le poids.",
-    items: [
-      "<b>R\u00E9sum\u00E9</b> : jours d'affil\u00E9e, jours suivis sur la p\u00E9riode, respect de l'objectif.",
-      "Courbe de poids et moyennes de calories et macros.",
+      "<b>Mes aliments</b> regroupe ceux que tu as cr\u00E9\u00E9s.",
+      "Progr\u00E8s affiche jours d'affil\u00E9e, respect de l'objectif, courbe de poids et moyennes.",
       "Change la p\u00E9riode pour comparer une semaine \u00E0 un mois."
     ]
   },
   {
-    title: "Profil et objectifs",
-    body: "Le dernier onglet d\u00E9termine tous les chiffres du reste de l'app.",
+    title: "Objectifs et cyclage",
+    body: "Le Profil d\u00E9termine tous les chiffres du reste de l'app.",
     items: [
-      "Tes donn\u00E9es corporelles servent \u00E0 calculer ton m\u00E9tabolisme.",
+      "Tes donn\u00E9es corporelles servent \u00E0 calculer ton m\u00E9tabolisme et ta d\u00E9pense.",
       "<b>S\u00E8che, maintien, masse</b> : chaque objectif garde ses propres r\u00E9glages.",
       "<b>Cyclage calorique</b> : plus de glucides les jours d'entra\u00EEnement, moins les jours de repos, \u00E0 moyenne constante."
     ]
   },
   {
-    title: "Notifications",
+    title: "Rappels de repas",
     body: "Un rappel arrive si un repas principal n'est toujours pas logg\u00E9 pass\u00E9 son heure.",
     items: [
       "L'interrupteur du Profil les active ou les coupe.",
       "Pastille <b>verte</b> : les rappels arrivent m\u00EAme app ferm\u00E9e.",
-      "Pastille <b>grise</b> : ils n'arrivent que si l'app est ouverte. Appuie sur Connecter.",
-      "Les r\u00E9glages techniques sont sous \u00AB R\u00E9glages avanc\u00E9s \u00BB."
+      "Pastille <b>grise</b> : seulement app ouverte. Appuie sur Connecter.",
+      "Aucun rappel pour les collations, c'est volontaire."
+    ]
+  },
+  {
+    title: "Sauvegarde et cl\u00E9",
+    body: "Tes donn\u00E9es vivent sur ton t\u00E9l\u00E9phone, et sont copi\u00E9es sur le serveur d\u00E8s qu'elles changent.",
+    items: [
+      "La section <b>Sauvegarde</b> indique l'heure du dernier envoi.",
+      "<b>Copie ta cl\u00E9 de compte et garde-la</b> : sans elle, un changement de t\u00E9l\u00E9phone fait tout perdre.",
+      "Sur un nouveau t\u00E9l\u00E9phone : colle la cl\u00E9 dans \u00AB Utiliser un code \u00BB, puis <b>Restaurer depuis le serveur</b>.",
+      "<b>Inviter un ami</b> lui donne son propre compte, s\u00E9par\u00E9 du tien."
     ]
   }
 ];
@@ -2704,6 +2717,9 @@ function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [picker, setPicker] = useState(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  // Le guide s'ouvre dans la foulee de la configuration initiale : c'est le
+  // moment ou la personne decouvre l'app et ou les explications servent le plus.
+  const [showGuideAfterOnboarding, setShowGuideAfterOnboarding] = useState(false);
   const [dismissedReminderKey, setDismissedReminderKey] = useState(null);
   const [lastRemoved, setLastRemoved] = useState(null);
   const notifiedRef = useRef(/* @__PURE__ */ new Set());
@@ -2977,11 +2993,12 @@ function App() {
         onComplete: (patch) => {
           setProfile((prev) => ({ ...prev, ...patch }));
           setShowOnboarding(false);
+          setShowGuideAfterOnboarding(true);
         }
       }
     ));
   }
-  return /* @__PURE__ */ React.createElement("div", { className: "fonte-root" }, /* @__PURE__ */ React.createElement(GlobalStyle, null), /* @__PURE__ */ React.createElement(DataContext.Provider, { value: ctxValue }, /* @__PURE__ */ React.createElement("div", { className: "fonte-shell" }, /* @__PURE__ */ React.createElement("div", { className: "fonte-scroll" }, activeTab === "dashboard" && /* @__PURE__ */ React.createElement(DashboardScreen, null), activeTab === "journal" && /* @__PURE__ */ React.createElement(JournalScreen, null), activeTab === "aliments" && /* @__PURE__ */ React.createElement(AlimentsScreen, null), activeTab === "progres" && /* @__PURE__ */ React.createElement(ProgressScreen, null), activeTab === "profil" && /* @__PURE__ */ React.createElement(ProfileScreen, null)), /* @__PURE__ */ React.createElement(UndoBar, null), /* @__PURE__ */ React.createElement(BottomNav, { active: activeTab, onChange: setActiveTab }), picker && /* @__PURE__ */ React.createElement(FoodPickerModal, { date: picker.date, initialMealId: picker.mealId, presetFood: picker.presetFood, onClose: () => setPicker(null) }))));
+  return /* @__PURE__ */ React.createElement("div", { className: "fonte-root" }, /* @__PURE__ */ React.createElement(GlobalStyle, null), /* @__PURE__ */ React.createElement(DataContext.Provider, { value: ctxValue }, /* @__PURE__ */ React.createElement("div", { className: "fonte-shell" }, /* @__PURE__ */ React.createElement("div", { className: "fonte-scroll" }, activeTab === "dashboard" && /* @__PURE__ */ React.createElement(DashboardScreen, null), activeTab === "journal" && /* @__PURE__ */ React.createElement(JournalScreen, null), activeTab === "aliments" && /* @__PURE__ */ React.createElement(AlimentsScreen, null), activeTab === "progres" && /* @__PURE__ */ React.createElement(ProgressScreen, null), activeTab === "profil" && /* @__PURE__ */ React.createElement(ProfileScreen, null)), /* @__PURE__ */ React.createElement(UndoBar, null), showGuideAfterOnboarding && /* @__PURE__ */ React.createElement(GuideModal, { onClose: () => setShowGuideAfterOnboarding(false) }), /* @__PURE__ */ React.createElement(BottomNav, { active: activeTab, onChange: setActiveTab }), picker && /* @__PURE__ */ React.createElement(FoodPickerModal, { date: picker.date, initialMealId: picker.mealId, presetFood: picker.presetFood, onClose: () => setPicker(null) }))));
 }
 const rootEl = document.getElementById("root");
 const root = ReactDOM.createRoot(rootEl);
