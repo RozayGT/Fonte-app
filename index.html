@@ -1049,7 +1049,7 @@ function computeStreak(nutritionHistory, today) {
 }
 // Numero de version affiche en bas de l'ecran Profil. Sert a verifier d'un coup
 // d'oeil que la derniere mise a jour a bien ete prise en compte par l'iPhone.
-const APP_VERSION = "2.7";
+const APP_VERSION = "2.8";
 const MEAL_REMINDER_HOURS = {
   "petit-dej": 11,
   "dejeuner": 14,
@@ -1150,8 +1150,20 @@ async function serverFetch(serverUrl, path, token, options) {
     }
   });
   if (!res.ok) {
+    // Le serveur renvoie un message clair dans { error: "..." }. On l'affiche
+    // tel quel plutot que d'exposer le JSON brut a l'utilisateur.
     const text = await res.text().catch(() => "");
-    throw new Error("Le serveur a r\xE9pondu " + res.status + (text ? " \u2014 " + text.slice(0, 200) : ""));
+    let message = "";
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed && typeof parsed.error === "string") message = parsed.error;
+    } catch (e) { /* reponse non JSON : on garde le repli ci-dessous */ }
+    if (!message) {
+      message = res.status === 503
+        ? "Service momentan\u00E9ment indisponible. R\u00E9essaie dans une minute."
+        : "Le serveur a r\u00E9pondu " + res.status + (text ? " \u2014 " + text.slice(0, 120) : "");
+    }
+    throw new Error(message);
   }
   return res.json().catch(() => ({}));
 }
