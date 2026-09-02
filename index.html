@@ -1049,22 +1049,33 @@ function computeStreak(nutritionHistory, today) {
 }
 // Numero de version affiche en bas de l'ecran Profil. Sert a verifier d'un coup
 // d'oeil que la derniere mise a jour a bien ete prise en compte par l'iPhone.
-const APP_VERSION = "3.0";
+const APP_VERSION = "3.1";
 const MEAL_REMINDER_HOURS = {
   "petit-dej": 11,
   "dejeuner": 14,
   "diner": 21
 };
+// Fenetre de validite d'un rappel, en heures. Miroir de reminder-logic.js
+// cote serveur : au-dela, le rappel n'a plus de sens et disparait.
+const MEAL_REMINDER_WINDOW_HOURS = 2;
 function getOverdueMeal(mealSlots, dayLog) {
   const hour = (/* @__PURE__ */ new Date()).getHours();
-  const loggedIds = new Set(Object.keys(dayLog && dayLog.meals || {}).filter((id) => (dayLog.meals[id] || []).length > 0));
-  for (const meal of mealSlots) {
+  const loggedIds = new Set(
+    Object.keys((dayLog && dayLog.meals) || {}).filter((id) => (dayLog.meals[id] || []).length > 0)
+  );
+  // Du repas le plus tardif au plus recent : si plusieurs sont en retard,
+  // on signale le plus actuel.
+  const candidates = (mealSlots || [])
+    .filter((m) => MEAL_REMINDER_HOURS[m.id] != null)
+    .sort((a, b) => MEAL_REMINDER_HOURS[b.id] - MEAL_REMINDER_HOURS[a.id]);
+  for (const meal of candidates) {
     const cutoff = MEAL_REMINDER_HOURS[meal.id];
-    if (cutoff == null) continue;
-    if (hour >= cutoff && !loggedIds.has(meal.id)) return meal;
+    if (loggedIds.has(meal.id)) continue;
+    if (hour >= cutoff && hour < cutoff + MEAL_REMINDER_WINDOW_HOURS) return meal;
   }
   return null;
 }
+
 function computeWaterTarget(profile) {
   return Math.round((profile.weightKg || 70) * 35 / 50) * 50;
 }
