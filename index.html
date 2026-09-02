@@ -1049,7 +1049,7 @@ function computeStreak(nutritionHistory, today) {
 }
 // Numero de version affiche en bas de l'ecran Profil. Sert a verifier d'un coup
 // d'oeil que la derniere mise a jour a bien ete prise en compte par l'iPhone.
-const APP_VERSION = "2.8";
+const APP_VERSION = "3.0";
 const MEAL_REMINDER_HOURS = {
   "petit-dej": 11,
   "dejeuner": 14,
@@ -1815,7 +1815,7 @@ function compressImage(file, maxSide, quality) {
 }
 
 function PhotoTab({ date, mealId, onClose }) {
-  const { profile, addEntry } = useData();
+  const { profile, addEntry, allFoods } = useData();
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
   const [preview, setPreview] = useState(null);
@@ -1839,7 +1839,7 @@ function PhotoTab({ date, mealId, onClose }) {
       setStatus("analyzing");
       const r = await serverFetch(serverUrl, "/api/analyze-photo", token, {
         method: "POST",
-        body: JSON.stringify({ image: base64, mimeType: "image/jpeg" })
+        body: JSON.stringify({ image: base64, mimeType: "image/jpeg", apiKey: profile.geminiApiKey || "" })
       });
       const found = (r && r.items) || [];
       if (!found.length) {
@@ -1854,12 +1854,42 @@ function PhotoTab({ date, mealId, onClose }) {
       setStatus("idle");
       setError((err && err.message) || "L'analyse a echoue.");
     }
-  }, [serverUrl, token]);
+  }, [serverUrl, token, profile.geminiApiKey]);
 
   const onFile = (e) => {
     const file = e.target.files && e.target.files[0];
     if (file) analyse(file);
     e.target.value = "";
+  };
+
+  // Ligne en cours de correction (l'analyse se trompe parfois de plat : on veut
+  // pouvoir renommer, et surtout remplacer les valeurs nutritionnelles).
+  const [editingUid, setEditingUid] = useState(null);
+
+  const setName = (uid, name) => {
+    setItems((prev) => prev.map((it) => it.uid === uid ? { ...it, name } : it));
+  };
+
+  // Remplace un aliment par celui choisi dans la base : nom ET valeurs.
+  const replaceWithFood = (uid, food) => {
+    setItems((prev) => prev.map((it) => it.uid === uid ? {
+      ...it,
+      name: food.name,
+      kcal: food.kcal,
+      protein: food.protein,
+      carbs: food.carbs,
+      fat: food.fat,
+      confidence: "haute",
+      corrected: true
+    } : it));
+    setEditingUid(null);
+  };
+
+  // Propositions de la base correspondant au nom tape, pour corriger d'un appui.
+  const suggestionsFor = (name) => {
+    const q = normalize(name).trim();
+    if (q.length < 2) return [];
+    return (allFoods || []).filter((f) => normalize(f.name).includes(q)).slice(0, 4);
   };
 
   const setGrams = (uid, grams) => {
@@ -1955,18 +1985,32 @@ function PhotoTab({ date, mealId, onClose }) {
         items.map((it) => /* @__PURE__ */ React.createElement("div", {
           key: it.uid,
           className: "card-2",
-          style: { padding: "10px 12px", display: "flex", alignItems: "center", gap: 10, opacity: it.keep ? 1 : 0.45 }
+          style: { padding: "10px 12px", opacity: it.keep ? 1 : 0.45 }
         },
+        /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10 } },
           /* @__PURE__ */ React.createElement("button", {
             className: "btn-icon",
             style: { width: 26, height: 26, flexShrink: 0 },
             onClick: () => toggleKeep(it.uid)
           }, it.keep ? /* @__PURE__ */ React.createElement(Check, { size: 13 }) : /* @__PURE__ */ React.createElement(X, { size: 13 })),
           /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } },
-            /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, it.name),
-            /* @__PURE__ */ React.createElement("div", { className: "text-faint font-mono", style: { fontSize: 11.5 } },
+            editingUid === it.uid
+              ? /* @__PURE__ */ React.createElement("input", {
+                  className: "input",
+                  value: it.name,
+                  autoFocus: true,
+                  placeholder: "Nom de l'aliment",
+                  onChange: (e) => setName(it.uid, e.target.value),
+                  onBlur: () => setTimeout(() => setEditingUid((u) => u === it.uid ? null : u), 180),
+                  style: { padding: "5px 8px", fontSize: 13 }
+                })
+              : /* @__PURE__ */ React.createElement("div", {
+                  onClick: () => setEditingUid(it.uid),
+                  style: { fontSize: 13, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", textDecoration: "underline", textDecorationStyle: "dotted", textDecorationColor: "var(--text-faint)", textUnderlineOffset: 3 }
+                }, it.name),
+            /* @__PURE__ */ React.createElement("div", { className: "text-faint font-mono", style: { fontSize: 11.5, marginTop: 2 } },
               Math.round(it.kcal * it.grams / 100), " kcal",
-              it.confidence === "basse" ? " \u00B7 estimation incertaine" : ""
+              it.corrected ? " \u00B7 corrig\u00E9" : it.confidence === "basse" ? " \u00B7 estimation incertaine" : ""
             )
           ),
           /* @__PURE__ */ React.createElement("input", {
@@ -1977,6 +2021,21 @@ function PhotoTab({ date, mealId, onClose }) {
             style: { width: 68, padding: "6px 8px", fontSize: 12.5, flexShrink: 0 }
           }),
           /* @__PURE__ */ React.createElement("span", { className: "text-faint", style: { fontSize: 12, flexShrink: 0 } }, "g")
+        ),
+        // Pendant l'edition, on propose des aliments de la base. Les choisir
+        // remplace le nom ET les valeurs nutritionnelles, ce qu'un simple
+        // renommage ne ferait pas.
+        editingUid === it.uid && suggestionsFor(it.name).length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8 } },
+          /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 11.5, marginBottom: 6 } }, "Remplacer par :"),
+          /* @__PURE__ */ React.createElement("div", { className: "scroll-x" },
+            suggestionsFor(it.name).map((f) => /* @__PURE__ */ React.createElement("span", {
+              key: f.id,
+              className: "chip",
+              onMouseDown: (e) => e.preventDefault(),
+              onClick: () => replaceWithFood(it.uid, f)
+            }, f.name))
+          )
+        )
         ))
       ),
       note && /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 12, lineHeight: 1.45, marginTop: 10 } }, note),
@@ -2017,7 +2076,7 @@ function BarcodeTab({ date, mealId, onClose }) {
       const { base64 } = await compressImage(file, 1400, 0.8);
       const r = await serverFetch(profile.reminderServerUrl, "/api/read-barcode", profile.reminderServerToken, {
         method: "POST",
-        body: JSON.stringify({ image: base64, mimeType: "image/jpeg" })
+        body: JSON.stringify({ image: base64, mimeType: "image/jpeg", apiKey: profile.geminiApiKey || "" })
       });
       if (r && r.code) {
         setCode(r.code);
@@ -2030,7 +2089,7 @@ function BarcodeTab({ date, mealId, onClose }) {
       setStatus("idle");
       setScanError((err && err.message) || "Lecture impossible.");
     }
-  }, [profile.reminderServerUrl, profile.reminderServerToken]);
+  }, [profile.reminderServerUrl, profile.reminderServerToken, profile.geminiApiKey]);
 
   const lookup = async () => {
     if (!code.trim()) return;
@@ -2655,7 +2714,7 @@ function ProfileScreen() {
     if (next && typeof Notification !== "undefined" && Notification.permission === "default") {
       Notification.requestPermission();
     }
-  } })), local.remindersEnabled && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, borderTop: "1px solid var(--border-soft)", paddingTop: 11 } }, /* @__PURE__ */ React.createElement("span", { className: "status-dot", style: { background: local.pushSubscribed ? "var(--green, #7ec98f)" : "var(--text-faint)" } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, flex: 1, color: local.pushSubscribed ? "var(--text-dim)" : "var(--text-faint)" } }, local.pushSubscribed ? "Actifs m\u00EAme app ferm\u00E9e" : "Actifs seulement app ouverte"), !local.pushSubscribed && /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm", style: { flexShrink: 0, opacity: pushStatus && pushStatus.type === "loading" ? 0.6 : 1 }, disabled: pushStatus && pushStatus.type === "loading", onClick: handleConnectPush }, pushStatus && pushStatus.type === "loading" ? "Connexion\u2026" : "Connecter")), pushStatus && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12.5, lineHeight: 1.4, color: pushStatus.type === "error" ? "var(--rust)" : pushStatus.type === "success" ? "var(--green, #7ec98f)" : "var(--text-faint)" } }, pushStatus.message), /* @__PURE__ */ React.createElement("button", { style: { background: "none", border: "none", padding: "8px 0", textAlign: "left", minHeight: 34, color: "var(--text-faint)", fontSize: 12, fontFamily: "inherit", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }, onClick: () => setShowPushAdvanced((v) => !v) }, showPushAdvanced ? "\u2212" : "+", " R\u00E9glages avanc\u00E9s"), showPushAdvanced && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10, borderTop: "1px solid var(--border-soft)", paddingTop: 12 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, "URL du serveur"), /* @__PURE__ */ React.createElement("input", { className: "input", value: local.reminderServerUrl || "", onChange: (e) => commitField({ reminderServerUrl: e.target.value }), placeholder: "https://ton-serveur.exemple.com" })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, "Jeton (AUTH_TOKEN)"), /* @__PURE__ */ React.createElement("input", { className: "input", type: "password", value: local.reminderServerToken || "", onChange: (e) => commitField({ reminderServerToken: e.target.value }), placeholder: "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm", style: { flex: 1 }, disabled: pushStatus && pushStatus.type === "loading", onClick: handleConnectPush }, "Reconnecter"), /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm", style: { flex: 1 }, disabled: pushStatus && pushStatus.type === "loading", onClick: handleTestPush }, "Tester")), /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm", style: { color: "var(--text-faint)" }, disabled: pushStatus && pushStatus.type === "loading", onClick: handleResetDevices }, "Nettoyer les appareils fant\u00F4mes"), /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 11.5, lineHeight: 1.5 } }, "Sans serveur connect\u00E9, les rappels ne s'affichent que si l'app est ouverte."))), /* @__PURE__ */ React.createElement("div", { className: "divider-label" }, /* @__PURE__ */ React.createElement("span", { className: "eyebrow" }, "Compte et partage")), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 16, display: "flex", flexDirection: "column", gap: 14 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, marginBottom: 4 } }, "Inviter un ami"), /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 12, lineHeight: 1.5, marginBottom: 8 } }, "Envoie-lui le lien de l'app, puis ce code. Il aura ses propres donn\u00E9es, ses rappels et sa sauvegarde."), /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm btn-block", disabled: !local.reminderServerToken, onClick: () => copyText(encodeLinkCode({ u: local.reminderServerUrl || DEFAULT_SERVER_URL, t: local.reminderServerToken }), "invite") }, copied === "invite" ? "Code copi\u00E9" : "Copier le code d'invitation")), /* @__PURE__ */ React.createElement("div", { style: { borderTop: "1px solid var(--border-soft)", paddingTop: 13 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, marginBottom: 4 } }, "Ma cl\u00E9 de compte"), /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 12, lineHeight: 1.5, marginBottom: 8 } }, "Note-la quelque part. Elle seule permet de retrouver tes donn\u00E9es sur un autre t\u00E9l\u00E9phone ou apr\u00E8s une r\u00E9installation."), !local.accountKeySaved && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12.5, lineHeight: 1.45, color: "var(--brass)", marginBottom: 8 } }, "\u26A0\uFE0E Tu ne l'as pas encore mise de c\u00F4t\u00E9. Sans elle, tes donn\u00E9es seront perdues si tu changes de t\u00E9l\u00E9phone."), /* @__PURE__ */ React.createElement("button", { className: local.accountKeySaved ? "btn btn-ghost btn-sm btn-block" : "btn btn-primary btn-sm btn-block", disabled: !local.reminderServerToken || !userId, onClick: () => { copyText(encodeLinkCode({ u: local.reminderServerUrl || DEFAULT_SERVER_URL, t: local.reminderServerToken, i: userId }), "key"); commitField({ accountKeySaved: true }); } }, copied === "key" ? "Cl\u00E9 copi\u00E9e" : "Copier ma cl\u00E9 de compte")), /* @__PURE__ */ React.createElement("div", { style: { borderTop: "1px solid var(--border-soft)", paddingTop: 13 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, marginBottom: 4 } }, "Utiliser un code"), /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 12, lineHeight: 1.5, marginBottom: 8 } }, "Colle ici une invitation re\u00E7ue, ou ta propre cl\u00E9 de compte pour te reconnecter."), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("input", { className: "input font-mono", style: { fontSize: 12 }, placeholder: "FONTE-\u2026", value: linkInput, onChange: (e) => setLinkInput(e.target.value) }), /* @__PURE__ */ React.createElement("button", { className: "btn btn-primary", disabled: !linkInput.trim(), onClick: applyLinkCode }, "OK")), linkStatus && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12.5, lineHeight: 1.4, marginTop: 8, color: linkStatus.type === "error" ? "var(--rust)" : "var(--green, #7ec98f)" } }, linkStatus.message))), /* @__PURE__ */ React.createElement("div", { className: "divider-label" }, /* @__PURE__ */ React.createElement("span", { className: "eyebrow" }, "Sauvegarde")), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 16, display: "flex", flexDirection: "column", gap: 11 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ React.createElement("span", { className: "status-dot", style: { background: !local.reminderServerUrl || !local.reminderServerToken ? "var(--text-faint)" : backupState && backupState.status === "error" ? "var(--rust)" : backupState && backupState.savedAt ? "var(--green, #7ec98f)" : "var(--brass)" } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12.5, flex: 1, color: "var(--text-dim)" } }, !local.reminderServerUrl || !local.reminderServerToken ? "Inactive \u2014 renseigne le serveur ci-dessus" : backupState && backupState.status === "saving" ? "Enregistrement\u2026" : backupState && backupState.status === "error" ? "Derni\u00E8re tentative \u00E9chou\u00E9e" : backupState && backupState.savedAt ? "\u00C0 jour \u00B7 " + new Date(backupState.savedAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "En attente de modification")), /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 12, lineHeight: 1.5 } }, "Tes repas, poids, aliments perso et r\u00E9glages sont envoy\u00E9s au serveur d\u00E8s qu'ils changent. Apr\u00E8s une r\u00E9installation, remets l'adresse et le jeton ci-dessus puis appuie sur Restaurer."), /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm", disabled: restoreStatus && restoreStatus.type === "loading", onClick: handleRestore }, restoreStatus && restoreStatus.type === "loading" ? "R\u00E9cup\u00E9ration\u2026" : "Restaurer depuis le serveur"), restoreStatus && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12.5, lineHeight: 1.4, color: restoreStatus.type === "error" ? "var(--rust)" : restoreStatus.type === "success" ? "var(--green, #7ec98f)" : "var(--text-faint)" } }, restoreStatus.message))), /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "18px 0 8px" } }, /* @__PURE__ */ React.createElement("div", { className: "font-mono text-faint", style: { fontSize: 12, letterSpacing: "0.08em" } }, "FONTE \xB7 version ", APP_VERSION)))
+  } })), local.remindersEnabled && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, borderTop: "1px solid var(--border-soft)", paddingTop: 11 } }, /* @__PURE__ */ React.createElement("span", { className: "status-dot", style: { background: local.pushSubscribed ? "var(--green, #7ec98f)" : "var(--text-faint)" } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, flex: 1, color: local.pushSubscribed ? "var(--text-dim)" : "var(--text-faint)" } }, local.pushSubscribed ? "Actifs m\u00EAme app ferm\u00E9e" : "Actifs seulement app ouverte"), !local.pushSubscribed && /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm", style: { flexShrink: 0, opacity: pushStatus && pushStatus.type === "loading" ? 0.6 : 1 }, disabled: pushStatus && pushStatus.type === "loading", onClick: handleConnectPush }, pushStatus && pushStatus.type === "loading" ? "Connexion\u2026" : "Connecter")), pushStatus && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12.5, lineHeight: 1.4, color: pushStatus.type === "error" ? "var(--rust)" : pushStatus.type === "success" ? "var(--green, #7ec98f)" : "var(--text-faint)" } }, pushStatus.message), /* @__PURE__ */ React.createElement("button", { style: { background: "none", border: "none", padding: "8px 0", textAlign: "left", minHeight: 34, color: "var(--text-faint)", fontSize: 12, fontFamily: "inherit", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }, onClick: () => setShowPushAdvanced((v) => !v) }, showPushAdvanced ? "\u2212" : "+", " R\u00E9glages avanc\u00E9s"), showPushAdvanced && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10, borderTop: "1px solid var(--border-soft)", paddingTop: 12 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, "URL du serveur"), /* @__PURE__ */ React.createElement("input", { className: "input", value: local.reminderServerUrl || "", onChange: (e) => commitField({ reminderServerUrl: e.target.value }), placeholder: "https://ton-serveur.exemple.com" })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, "Jeton (AUTH_TOKEN)"), /* @__PURE__ */ React.createElement("input", { className: "input", type: "password", value: local.reminderServerToken || "", onChange: (e) => commitField({ reminderServerToken: e.target.value }), placeholder: "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm", style: { flex: 1 }, disabled: pushStatus && pushStatus.type === "loading", onClick: handleConnectPush }, "Reconnecter"), /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm", style: { flex: 1 }, disabled: pushStatus && pushStatus.type === "loading", onClick: handleTestPush }, "Tester")), /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm", style: { color: "var(--text-faint)" }, disabled: pushStatus && pushStatus.type === "loading", onClick: handleResetDevices }, "Nettoyer les appareils fant\u00F4mes"), /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 11.5, lineHeight: 1.5 } }, "Sans serveur connect\u00E9, les rappels ne s'affichent que si l'app est ouverte."))), /* @__PURE__ */ React.createElement("div", { className: "divider-label" }, /* @__PURE__ */ React.createElement("span", { className: "eyebrow" }, "Analyse photo")), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 16, display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ React.createElement("span", { className: "status-dot", style: { background: local.geminiApiKey ? "var(--green, #7ec98f)" : "var(--text-faint)" } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12.5, color: "var(--text-dim)" } }, local.geminiApiKey ? "Ta cl\u00E9 Google personnelle" : "Cl\u00E9 partag\u00E9e du serveur")), /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 11.5, lineHeight: 1.5 } }, "Sans cl\u00E9 personnelle, tu partages le quota gratuit avec les autres utilisateurs du serveur. Avec la tienne, tu as ton propre quota. Cr\u00E9e-la gratuitement sur aistudio.google.com, rubrique cl\u00E9s API."), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "field-label" }, "Ma cl\u00E9 Google (optionnel)"), /* @__PURE__ */ React.createElement("input", { className: "input", type: "password", autoComplete: "off", value: local.geminiApiKey || "", onChange: (e) => commitField({ geminiApiKey: e.target.value.trim() }), placeholder: "AQ. ou AIza\u2026" })), local.geminiApiKey && /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm", style: { color: "var(--text-faint)" }, onClick: () => commitField({ geminiApiKey: "" }) }, "Revenir \u00E0 la cl\u00E9 partag\u00E9e")), /* @__PURE__ */ React.createElement("div", { className: "divider-label" }, /* @__PURE__ */ React.createElement("span", { className: "eyebrow" }, "Compte et partage")), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 16, display: "flex", flexDirection: "column", gap: 14 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, marginBottom: 4 } }, "Inviter un ami"), /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 12, lineHeight: 1.5, marginBottom: 8 } }, "Envoie-lui le lien de l'app, puis ce code. Il aura ses propres donn\u00E9es, ses rappels et sa sauvegarde."), /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm btn-block", disabled: !local.reminderServerToken, onClick: () => copyText(encodeLinkCode({ u: local.reminderServerUrl || DEFAULT_SERVER_URL, t: local.reminderServerToken }), "invite") }, copied === "invite" ? "Code copi\u00E9" : "Copier le code d'invitation")), /* @__PURE__ */ React.createElement("div", { style: { borderTop: "1px solid var(--border-soft)", paddingTop: 13 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, marginBottom: 4 } }, "Ma cl\u00E9 de compte"), /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 12, lineHeight: 1.5, marginBottom: 8 } }, "Note-la quelque part. Elle seule permet de retrouver tes donn\u00E9es sur un autre t\u00E9l\u00E9phone ou apr\u00E8s une r\u00E9installation."), !local.accountKeySaved && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12.5, lineHeight: 1.45, color: "var(--brass)", marginBottom: 8 } }, "\u26A0\uFE0E Tu ne l'as pas encore mise de c\u00F4t\u00E9. Sans elle, tes donn\u00E9es seront perdues si tu changes de t\u00E9l\u00E9phone."), /* @__PURE__ */ React.createElement("button", { className: local.accountKeySaved ? "btn btn-ghost btn-sm btn-block" : "btn btn-primary btn-sm btn-block", disabled: !local.reminderServerToken || !userId, onClick: () => { copyText(encodeLinkCode({ u: local.reminderServerUrl || DEFAULT_SERVER_URL, t: local.reminderServerToken, i: userId }), "key"); commitField({ accountKeySaved: true }); } }, copied === "key" ? "Cl\u00E9 copi\u00E9e" : "Copier ma cl\u00E9 de compte")), /* @__PURE__ */ React.createElement("div", { style: { borderTop: "1px solid var(--border-soft)", paddingTop: 13 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, marginBottom: 4 } }, "Utiliser un code"), /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 12, lineHeight: 1.5, marginBottom: 8 } }, "Colle ici une invitation re\u00E7ue, ou ta propre cl\u00E9 de compte pour te reconnecter."), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8 } }, /* @__PURE__ */ React.createElement("input", { className: "input font-mono", style: { fontSize: 12 }, placeholder: "FONTE-\u2026", value: linkInput, onChange: (e) => setLinkInput(e.target.value) }), /* @__PURE__ */ React.createElement("button", { className: "btn btn-primary", disabled: !linkInput.trim(), onClick: applyLinkCode }, "OK")), linkStatus && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12.5, lineHeight: 1.4, marginTop: 8, color: linkStatus.type === "error" ? "var(--rust)" : "var(--green, #7ec98f)" } }, linkStatus.message))), /* @__PURE__ */ React.createElement("div", { className: "divider-label" }, /* @__PURE__ */ React.createElement("span", { className: "eyebrow" }, "Sauvegarde")), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 16, display: "flex", flexDirection: "column", gap: 11 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ React.createElement("span", { className: "status-dot", style: { background: !local.reminderServerUrl || !local.reminderServerToken ? "var(--text-faint)" : backupState && backupState.status === "error" ? "var(--rust)" : backupState && backupState.savedAt ? "var(--green, #7ec98f)" : "var(--brass)" } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12.5, flex: 1, color: "var(--text-dim)" } }, !local.reminderServerUrl || !local.reminderServerToken ? "Inactive \u2014 renseigne le serveur ci-dessus" : backupState && backupState.status === "saving" ? "Enregistrement\u2026" : backupState && backupState.status === "error" ? "Derni\u00E8re tentative \u00E9chou\u00E9e" : backupState && backupState.savedAt ? "\u00C0 jour \u00B7 " + new Date(backupState.savedAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "En attente de modification")), /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 12, lineHeight: 1.5 } }, "Tes repas, poids, aliments perso et r\u00E9glages sont envoy\u00E9s au serveur d\u00E8s qu'ils changent. Apr\u00E8s une r\u00E9installation, remets l'adresse et le jeton ci-dessus puis appuie sur Restaurer."), /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm", disabled: restoreStatus && restoreStatus.type === "loading", onClick: handleRestore }, restoreStatus && restoreStatus.type === "loading" ? "R\u00E9cup\u00E9ration\u2026" : "Restaurer depuis le serveur"), restoreStatus && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12.5, lineHeight: 1.4, color: restoreStatus.type === "error" ? "var(--rust)" : restoreStatus.type === "success" ? "var(--green, #7ec98f)" : "var(--text-faint)" } }, restoreStatus.message))), /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "18px 0 8px" } }, /* @__PURE__ */ React.createElement("div", { className: "font-mono text-faint", style: { fontSize: 12, letterSpacing: "0.08em" } }, "FONTE \xB7 version ", APP_VERSION)))
 }
 const ONBOARDING_STEPS = 8;
 function OnboardingDots({ step }) {
@@ -2828,7 +2887,11 @@ function App() {
   // de saisir l'adresse du serveur et le jeton pour tout recuperer.
   // -------------------------------------------------------------------------
   const backupPayload = useMemo(() => ({
-    profile: profileRaw,
+    // La cle Google personnelle est volontairement exclue de la sauvegarde :
+    // elle appartient a chacun et n'a pas a etre stockee sur un serveur tenu
+    // par quelqu'un d'autre. Elle est simplement a resaisir apres une
+    // reinstallation.
+    profile: (({ geminiApiKey, ...rest }) => rest)(profileRaw),
     customFoods,
     weightHistory,
     mealSlots,
