@@ -1049,7 +1049,7 @@ function computeStreak(nutritionHistory, today) {
 }
 // Numero de version affiche en bas de l'ecran Profil. Sert a verifier d'un coup
 // d'oeil que la derniere mise a jour a bien ete prise en compte par l'iPhone.
-const APP_VERSION = "3.4";
+const APP_VERSION = "3.5";
 const MEAL_REMINDER_HOURS = {
   "petit-dej": 11,
   "dejeuner": 14,
@@ -1835,6 +1835,7 @@ function PhotoTab({ date, mealId, onClose }) {
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
   const [preview, setPreview] = useState(null);
+  const [thumbnail, setThumbnail] = useState(null);
   const [items, setItems] = useState([]);
   const [note, setNote] = useState("");
   const fileRef = useRef(null);
@@ -1852,6 +1853,12 @@ function PhotoTab({ date, mealId, onClose }) {
     try {
       const { dataUrl, base64 } = await compressImage(file, 900, 0.7);
       setPreview(dataUrl);
+      // Vignette tres legere (~8 Ko) conservee avec le repas : elle sert a le
+      // reconnaitre d'un coup d'oeil plus tard, sans alourdir la sauvegarde.
+      try {
+        const thumb = await compressImage(file, 220, 0.6);
+        setThumbnail(thumb.dataUrl);
+      } catch (e) { setThumbnail(null); }
       setStatus("analyzing");
       const r = await serverFetch(serverUrl, "/api/analyze-photo", token, {
         method: "POST",
@@ -1947,7 +1954,7 @@ function PhotoTab({ date, mealId, onClose }) {
       if (!known) addCustomFood({ ...food, id: uid() });
     });
     const mealLabel = (mealSlots || []).find((m) => m.id === mealId);
-    rememberPhotoMeal(kept.length === 1 ? kept[0].name : (mealLabel ? mealLabel.label : "") + " \u00B7 " + kept.length + " aliments", kept);
+    rememberPhotoMeal(kept.length === 1 ? kept[0].name : (mealLabel ? mealLabel.label : "") + " \u00B7 " + kept.length + " aliments", kept, thumbnail);
     onClose();
   };
 
@@ -2019,6 +2026,7 @@ function PhotoTab({ date, mealId, onClose }) {
             className: "card-2",
             style: { padding: "10px 12px", display: "flex", alignItems: "center", gap: 10 }
           },
+            m.thumbnail && /* @__PURE__ */ React.createElement("img", { src: m.thumbnail, alt: "", style: { width: 44, height: 44, borderRadius: 8, objectFit: "cover", flexShrink: 0 } }),
             /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 }, onClick: () => replayMeal(m) },
               /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, m.label),
               /* @__PURE__ */ React.createElement("div", { className: "text-faint font-mono", style: { fontSize: 11.5, marginTop: 2 } },
@@ -2262,7 +2270,7 @@ function FoodDetailModal({ food, onClose, onDeleted }) {
   } }, /* @__PURE__ */ React.createElement(Trash2, { size: 15 }), " Supprimer cet aliment personnalis\xE9"));
 }
 function AlimentsScreen() {
-  const { allFoods, customFoods, favoriteFoodIds, toggleFavorite } = useData();
+  const { allFoods, customFoods, favoriteFoodIds, toggleFavorite, photoMeals, removePhotoMeal, openPicker, today } = useData();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState(null);
   const [filterMode, setFilterMode] = useState("all");
@@ -2286,10 +2294,47 @@ function AlimentsScreen() {
   } }, /* @__PURE__ */ React.createElement(Star, { size: 11, fill: filterMode === "favorites" ? "currentColor" : "none" }), " Favoris"), /* @__PURE__ */ React.createElement("span", { className: "chip" + (filterMode === "custom" ? " active" : ""), onClick: () => {
     setFilterMode("custom");
     setCategory(null);
-  } }, "Mes aliments"), CATEGORIES.filter((c) => c.id !== "personnalise").map((c) => /* @__PURE__ */ React.createElement("span", { key: c.id, className: "chip" + (category === c.id ? " active" : ""), onClick: () => {
+  } }, "Mes aliments"), (photoMeals || []).length > 0 && /* @__PURE__ */ React.createElement("span", { className: "chip" + (filterMode === "photos" ? " active" : ""), onClick: () => {
+    setFilterMode("photos");
+    setCategory(null);
+  } }, /* @__PURE__ */ React.createElement(Camera, { size: 11 }), " Repas photo"), CATEGORIES.filter((c) => c.id !== "personnalise").map((c) => /* @__PURE__ */ React.createElement("span", { key: c.id, className: "chip" + (category === c.id ? " active" : ""), onClick: () => {
     setCategory(c.id);
     setFilterMode("all");
-  } }, c.label))), /* @__PURE__ */ React.createElement("div", { className: "card", style: { overflow: "hidden" } }, results.length === 0 && /* @__PURE__ */ React.createElement(EmptyState, { text: filterMode === "favorites" ? "Aucun favori pour l'instant \u2014 appuyez sur l'\xE9toile d'un aliment pour l'ajouter ici." : "Aucun aliment ne correspond \xE0 cette recherche." }), results.map((f) => /* @__PURE__ */ React.createElement(
+  } }, c.label))), /* @__PURE__ */ filterMode === "photos" ? /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 10 } },
+    (photoMeals || [])
+      .filter((m) => !normalize(query) || normalize(m.label).includes(normalize(query)) || m.items.some((i) => normalize(i.name).includes(normalize(query))))
+      .map((m) => {
+        const kcal = m.items.reduce((s, i) => s + i.kcal * i.grams / 100, 0);
+        const prot = m.items.reduce((s, i) => s + i.protein * i.grams / 100, 0);
+        const carb = m.items.reduce((s, i) => s + i.carbs * i.grams / 100, 0);
+        const fat = m.items.reduce((s, i) => s + i.fat * i.grams / 100, 0);
+        return /* @__PURE__ */ React.createElement("div", { key: m.id, className: "card", style: { padding: 0, overflow: "hidden" } },
+          m.thumbnail && /* @__PURE__ */ React.createElement("img", { src: m.thumbnail, alt: "", style: { width: "100%", height: 132, objectFit: "cover", display: "block" } }),
+          /* @__PURE__ */ React.createElement("div", { style: { padding: "12px 14px" } },
+            /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "flex-start", gap: 10 } },
+              /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 } },
+                /* @__PURE__ */ React.createElement("div", { style: { fontSize: 14, fontWeight: 600 } }, m.label),
+                /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 11.5, marginTop: 3 } }, new Date(m.at).toLocaleDateString("fr-FR", { day: "numeric", month: "long" }))
+              ),
+              /* @__PURE__ */ React.createElement("button", { className: "btn-icon", style: { width: 28, height: 28, flexShrink: 0 }, onClick: () => removePhotoMeal(m.id) }, /* @__PURE__ */ React.createElement(X, { size: 13 }))
+            ),
+            /* @__PURE__ */ React.createElement("div", { className: "font-mono", style: { display: "flex", justifyContent: "space-between", fontSize: 12.5, marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--border-soft)" } },
+              /* @__PURE__ */ React.createElement("span", null, Math.round(kcal), " kcal"),
+              /* @__PURE__ */ React.createElement("span", { className: "text-brass" }, Math.round(prot), "g P"),
+              /* @__PURE__ */ React.createElement("span", { className: "text-steel" }, Math.round(carb), "g G"),
+              /* @__PURE__ */ React.createElement("span", { className: "text-rust" }, Math.round(fat), "g L")
+            ),
+            /* @__PURE__ */ React.createElement("div", { style: { marginTop: 10, display: "flex", flexDirection: "column", gap: 4 } },
+              m.items.map((i, k) => /* @__PURE__ */ React.createElement("div", { key: k, style: { display: "flex", justifyContent: "space-between", fontSize: 12.5 } },
+                /* @__PURE__ */ React.createElement("span", { style: { color: "var(--text-dim)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, i.name),
+                /* @__PURE__ */ React.createElement("span", { className: "font-mono text-faint", style: { flexShrink: 0, marginLeft: 10 } }, i.grams, " g")
+              ))
+            ),
+            /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm btn-block", style: { marginTop: 12 }, onClick: () => openPicker(today, null) }, "Relogger ce repas")
+          )
+        );
+      })
+  ) : /* @__PURE__ */ React.createElement("div", { className: "card", style: { overflow: "hidden" } }, results.length === 0 && /* @__PURE__ */ React.createElement(EmptyState, { text: filterMode === "favorites" ? "Aucun favori pour l'instant \u2014 appuyez sur l'\xE9toile d'un aliment pour l'ajouter ici." : "Aucun aliment ne correspond \xE0 cette recherche." }), results.map((f) => /* @__PURE__ */ React.createElement(
     FoodRow,
     {
       key: f.id,
@@ -3114,7 +3159,7 @@ function App() {
     });
   }, [setNutritionHistory]);
   // Memorise un repas reconnu en photo, en tete de liste et sans doublon.
-  const rememberPhotoMeal = useCallback((label, items) => {
+  const rememberPhotoMeal = useCallback((label, items, thumbnail) => {
     if (!items || !items.length) return;
     setPhotoMeals((prev) => {
       const clean = items.map((it) => ({
@@ -3128,6 +3173,7 @@ function App() {
         label: label || clean.map((i) => i.name).join(", "),
         signature,
         items: clean,
+        thumbnail: thumbnail || null,
         at: (/* @__PURE__ */ new Date()).toISOString()
       }, ...withoutDuplicate].slice(0, 30); // on garde les 30 derniers
     });
