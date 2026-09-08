@@ -200,7 +200,6 @@ const GlobalStyle = () => /* @__PURE__ */ React.createElement("style", null, `
       min-height:0;
       overflow-y:auto;
       overflow-x:hidden;
-      -webkit-overflow-scrolling:touch;
       overscroll-behavior-y:contain;
       padding-bottom:20px;
     }
@@ -349,7 +348,6 @@ const GlobalStyle = () => /* @__PURE__ */ React.createElement("style", null, `
       display:flex;
       overflow-x:auto; overflow-y:hidden;
       scroll-snap-type:x mandatory;
-      -webkit-overflow-scrolling:touch;
       scrollbar-width:none;
       margin:0 -16px;
     }
@@ -360,7 +358,6 @@ const GlobalStyle = () => /* @__PURE__ */ React.createElement("style", null, `
       scroll-snap-stop:always;
       padding:2px 16px 4px;
       max-height:56vh; overflow-y:auto;
-      -webkit-overflow-scrolling:touch;
     }
     .guide-num{
       font-family:'Bebas Neue',ui-sans-serif,sans-serif;
@@ -442,7 +439,7 @@ const GlobalStyle = () => /* @__PURE__ */ React.createElement("style", null, `
       z-index:50; display:flex; align-items:flex-end; justify-content:center;
     }
     .modal-sheet{
-      width:100%; max-width:520px; max-height:88vh;
+      width:100%; max-width:520px; max-height:88vh; max-height:88dvh;
       padding-bottom:env(safe-area-inset-bottom);
       background:var(--surface); border-top-left-radius:20px; border-top-right-radius:20px;
       border:1px solid var(--border-soft); border-bottom:none;
@@ -1049,7 +1046,7 @@ function computeStreak(nutritionHistory, today) {
 }
 // Numero de version affiche en bas de l'ecran Profil. Sert a verifier d'un coup
 // d'oeil que la derniere mise a jour a bien ete prise en compte par l'iPhone.
-const APP_VERSION = "3.5";
+const APP_VERSION = "3.6";
 const MEAL_REMINDER_HOURS = {
   "petit-dej": 11,
   "dejeuner": 14,
