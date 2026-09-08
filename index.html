@@ -1049,7 +1049,7 @@ function computeStreak(nutritionHistory, today) {
 }
 // Numero de version affiche en bas de l'ecran Profil. Sert a verifier d'un coup
 // d'oeil que la derniere mise a jour a bien ete prise en compte par l'iPhone.
-const APP_VERSION = "3.3";
+const APP_VERSION = "3.4";
 const MEAL_REMINDER_HOURS = {
   "petit-dej": 11,
   "dejeuner": 14,
@@ -1831,7 +1831,7 @@ function compressImage(file, maxSide, quality) {
 }
 
 function PhotoTab({ date, mealId, onClose }) {
-  const { profile, addEntry, allFoods } = useData();
+  const { profile, addEntry, allFoods, addCustomFood, customFoods, photoMeals, rememberPhotoMeal, removePhotoMeal, mealSlots } = useData();
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
   const [preview, setPreview] = useState(null);
@@ -1850,7 +1850,7 @@ function PhotoTab({ date, mealId, onClose }) {
     setNote("");
     setStatus("compressing");
     try {
-      const { dataUrl, base64 } = await compressImage(file, 1024, 0.75);
+      const { dataUrl, base64 } = await compressImage(file, 900, 0.7);
       setPreview(dataUrl);
       setStatus("analyzing");
       const r = await serverFetch(serverUrl, "/api/analyze-photo", token, {
@@ -1926,9 +1926,12 @@ function PhotoTab({ date, mealId, onClose }) {
     };
   }, { kcal: 0, protein: 0, carbs: 0, fat: 0 });
 
+  // Enregistre le repas ET alimente la bibliotheque : chaque aliment reconnu
+  // devient un aliment perso, retrouvable ensuite par une simple recherche,
+  // sans repasser par l'analyse photo.
   const saveAll = () => {
     kept.forEach((it) => {
-      addEntry(date, mealId, {
+      const food = {
         id: "photo-" + it.uid,
         name: it.name,
         category: "personnalise",
@@ -1938,6 +1941,25 @@ function PhotoTab({ date, mealId, onClose }) {
         fat: it.fat,
         fiber: 0,
         isCustom: true
+      };
+      addEntry(date, mealId, food, it.grams);
+      const known = (customFoods || []).some((f) => normalize(f.name) === normalize(it.name));
+      if (!known) addCustomFood({ ...food, id: uid() });
+    });
+    const mealLabel = (mealSlots || []).find((m) => m.id === mealId);
+    rememberPhotoMeal(kept.length === 1 ? kept[0].name : (mealLabel ? mealLabel.label : "") + " \u00B7 " + kept.length + " aliments", kept);
+    onClose();
+  };
+
+  // Rejoue un repas deja reconnu : aucun appel reseau, donc instantane.
+  const replayMeal = (meal) => {
+    meal.items.forEach((it) => {
+      addEntry(date, mealId, {
+        id: "photo-" + uid(),
+        name: it.name,
+        category: "personnalise",
+        kcal: it.kcal, protein: it.protein, carbs: it.carbs, fat: it.fat,
+        fiber: 0, isCustom: true
       }, it.grams);
     });
     onClose();
@@ -1985,6 +2007,32 @@ function PhotoTab({ date, mealId, onClose }) {
         disabled: busy,
         onClick: () => libraryRef.current && libraryRef.current.click()
       }, "Galerie")
+    ),
+    // Repas deja reconnus : proposes en premier, ils evitent une analyse.
+    !items.length && (photoMeals || []).length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 16 } },
+      /* @__PURE__ */ React.createElement("div", { className: "eyebrow", style: { marginBottom: 8 } }, "D\u00E9j\u00E0 reconnus"),
+      /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8, maxHeight: "30vh", overflowY: "auto" } },
+        (photoMeals || []).slice(0, 12).map((m) => {
+          const kcal = m.items.reduce((s, i) => s + i.kcal * i.grams / 100, 0);
+          return /* @__PURE__ */ React.createElement("div", {
+            key: m.id,
+            className: "card-2",
+            style: { padding: "10px 12px", display: "flex", alignItems: "center", gap: 10 }
+          },
+            /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0 }, onClick: () => replayMeal(m) },
+              /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, m.label),
+              /* @__PURE__ */ React.createElement("div", { className: "text-faint font-mono", style: { fontSize: 11.5, marginTop: 2 } },
+                Math.round(kcal), " kcal \u00B7 ", m.items.length, " aliment", m.items.length > 1 ? "s" : ""
+              )
+            ),
+            /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm", style: { flexShrink: 0 }, onClick: () => replayMeal(m) }, "Ajouter"),
+            /* @__PURE__ */ React.createElement("button", { className: "btn-icon", style: { width: 26, height: 26, flexShrink: 0 }, onClick: () => removePhotoMeal(m.id) }, /* @__PURE__ */ React.createElement(X, { size: 12 }))
+          );
+        })
+      ),
+      /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 11.5, lineHeight: 1.5, marginTop: 8 } },
+        "Ces repas sont enregistr\u00E9s sur ton t\u00E9l\u00E9phone : les rejouer est imm\u00E9diat, sans passer par l'analyse."
+      )
     ),
     preview && /* @__PURE__ */ React.createElement("img", {
       src: preview,
@@ -2942,6 +2990,9 @@ function App() {
   const [recentFoodIds, setRecentFoodIds, recentReady] = usePersisted("recentFoodIds", []);
   const [waterHistory, setWaterHistory, waterReady] = usePersisted("waterHistory", {});
   const [userId, setUserId, userIdReady] = usePersisted("userId", null);
+  // Repas deja reconnus en photo. Les rejouer evite un aller-retour vers Google :
+  // c'est instantane, gratuit, et cela fonctionne meme si le service est sature.
+  const [photoMeals, setPhotoMeals, photoMealsReady] = usePersisted("photoMeals", []);
   const profile = useMemo(() => ({
     ...DEFAULT_PROFILE,
     ...profileRaw,
@@ -2973,7 +3024,7 @@ function App() {
     }
   }, [userIdReady, userId, setUserId]);
 
-  const allReady = profileReady && customReady && weightReady && mealsReady && historyReady && lastReady && favReady && recentReady && waterReady && userIdReady;
+  const allReady = profileReady && customReady && weightReady && mealsReady && historyReady && lastReady && favReady && recentReady && waterReady && userIdReady && photoMealsReady;
 
   // -------------------------------------------------------------------------
   // Sauvegarde continue vers le serveur.
@@ -2994,8 +3045,9 @@ function App() {
     lastLogged,
     favoriteFoodIds,
     recentFoodIds,
-    waterHistory
-  }), [profileRaw, customFoods, weightHistory, mealSlots, nutritionHistory, lastLogged, favoriteFoodIds, recentFoodIds, waterHistory]);
+    waterHistory,
+    photoMeals
+  }), [profileRaw, customFoods, weightHistory, mealSlots, nutritionHistory, lastLogged, favoriteFoodIds, recentFoodIds, waterHistory, photoMeals]);
 
   const [backupState, setBackupState] = useState({ status: "idle", savedAt: null });
   const lastSentRef = useRef(null);
@@ -3038,8 +3090,9 @@ function App() {
     if (d.favoriteFoodIds) setFavoriteFoodIds(() => d.favoriteFoodIds);
     if (d.recentFoodIds) setRecentFoodIds(() => d.recentFoodIds);
     if (d.waterHistory) setWaterHistory(() => d.waterHistory);
+    if (d.photoMeals) setPhotoMeals(() => d.photoMeals);
     return r.savedAt;
-  }, [profile.reminderServerUrl, profile.reminderServerToken, setProfile, setCustomFoods, setWeightHistory, setMealSlots, setNutritionHistory, setLastLogged, setFavoriteFoodIds, setRecentFoodIds, setWaterHistory]);
+  }, [profile.reminderServerUrl, profile.reminderServerToken, setProfile, setCustomFoods, setWeightHistory, setMealSlots, setNutritionHistory, setLastLogged, setFavoriteFoodIds, setRecentFoodIds, setWaterHistory, setPhotoMeals]);
   const allFoods = useMemo(() => [...FOOD_DB, ...customFoods], [customFoods]);
   const targets = useMemo(() => calcTargets(profile), [profile]);
   const getDayType = useCallback((date) => {
@@ -3060,6 +3113,30 @@ function App() {
       return { ...prev, [date]: nextDay };
     });
   }, [setNutritionHistory]);
+  // Memorise un repas reconnu en photo, en tete de liste et sans doublon.
+  const rememberPhotoMeal = useCallback((label, items) => {
+    if (!items || !items.length) return;
+    setPhotoMeals((prev) => {
+      const clean = items.map((it) => ({
+        name: it.name, grams: it.grams,
+        kcal: it.kcal, protein: it.protein, carbs: it.carbs, fat: it.fat
+      }));
+      const signature = clean.map((i) => normalize(i.name)).sort().join("|");
+      const withoutDuplicate = (prev || []).filter((m) => m.signature !== signature);
+      return [{
+        id: uid(),
+        label: label || clean.map((i) => i.name).join(", "),
+        signature,
+        items: clean,
+        at: (/* @__PURE__ */ new Date()).toISOString()
+      }, ...withoutDuplicate].slice(0, 30); // on garde les 30 derniers
+    });
+  }, [setPhotoMeals]);
+
+  const removePhotoMeal = useCallback((id) => {
+    setPhotoMeals((prev) => (prev || []).filter((m) => m.id !== id));
+  }, [setPhotoMeals]);
+
   const addCustomFood = useCallback((food) => {
     setCustomFoods((prev) => [...prev, food]);
   }, [setCustomFoods]);
@@ -3167,6 +3244,9 @@ function App() {
     restoreFromServer,
     userId,
     setUserId,
+    photoMeals,
+    rememberPhotoMeal,
+    removePhotoMeal,
     lastRemoved,
     lastAdded,
     undoRemove,
