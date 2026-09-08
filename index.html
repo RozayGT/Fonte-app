@@ -1046,7 +1046,7 @@ function computeStreak(nutritionHistory, today) {
 }
 // Numero de version affiche en bas de l'ecran Profil. Sert a verifier d'un coup
 // d'oeil que la derniere mise a jour a bien ete prise en compte par l'iPhone.
-const APP_VERSION = "3.6";
+const APP_VERSION = "3.7";
 const MEAL_REMINDER_HOURS = {
   "petit-dej": 11,
   "dejeuner": 14,
@@ -1833,6 +1833,7 @@ function PhotoTab({ date, mealId, onClose }) {
   const [error, setError] = useState("");
   const [preview, setPreview] = useState(null);
   const [thumbnail, setThumbnail] = useState(null);
+  const [lastImage, setLastImage] = useState(null);
   const [items, setItems] = useState([]);
   const [note, setNote] = useState("");
   const fileRef = useRef(null);
@@ -1842,21 +1843,12 @@ function PhotoTab({ date, mealId, onClose }) {
   const token = profile.reminderServerToken;
   const configured = Boolean(serverUrl && token);
 
-  const analyse = useCallback(async (file) => {
+  // Envoi de l'image deja compressee. Isole de la compression pour qu'un
+  // nouvel essai reparte directement du reseau, sans retraiter la photo.
+  const envoyer = useCallback(async (base64) => {
+    setStatus("analyzing");
     setError("");
-    setItems([]);
-    setNote("");
-    setStatus("compressing");
     try {
-      const { dataUrl, base64 } = await compressImage(file, 900, 0.7);
-      setPreview(dataUrl);
-      // Vignette tres legere (~8 Ko) conservee avec le repas : elle sert a le
-      // reconnaitre d'un coup d'oeil plus tard, sans alourdir la sauvegarde.
-      try {
-        const thumb = await compressImage(file, 220, 0.6);
-        setThumbnail(thumb.dataUrl);
-      } catch (e) { setThumbnail(null); }
-      setStatus("analyzing");
       const r = await serverFetch(serverUrl, "/api/analyze-photo", token, {
         method: "POST",
         body: JSON.stringify({ image: base64, mimeType: "image/jpeg", apiKey: profile.geminiApiKey || "" })
@@ -1875,6 +1867,28 @@ function PhotoTab({ date, mealId, onClose }) {
       setError((err && err.message) || "L'analyse a echoue.");
     }
   }, [serverUrl, token, profile.geminiApiKey]);
+
+  const analyse = useCallback(async (file) => {
+    setError("");
+    setItems([]);
+    setNote("");
+    setStatus("compressing");
+    try {
+      const { dataUrl, base64 } = await compressImage(file, 900, 0.7);
+      setPreview(dataUrl);
+      setLastImage(base64);
+      // Vignette tres legere (~8 Ko) conservee avec le repas : elle sert a le
+      // reconnaitre d'un coup d'oeil plus tard, sans alourdir la sauvegarde.
+      try {
+        const thumb = await compressImage(file, 220, 0.6);
+        setThumbnail(thumb.dataUrl);
+      } catch (e) { setThumbnail(null); }
+      await envoyer(base64);
+    } catch (err) {
+      setStatus("idle");
+      setError((err && err.message) || "Photo illisible.");
+    }
+  }, [envoyer]);
 
   const onFile = (e) => {
     const file = e.target.files && e.target.files[0];
@@ -2044,7 +2058,19 @@ function PhotoTab({ date, mealId, onClose }) {
       alt: "",
       style: { width: "100%", borderRadius: 12, marginTop: 12, display: "block", maxHeight: 170, objectFit: "cover" }
     }),
-    error && /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, lineHeight: 1.4, color: "var(--rust)", marginTop: 12 } }, error),
+    error && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 12 } },
+      /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12.5, lineHeight: 1.45, color: "var(--rust)" } }, error),
+      // Relancer sans reprendre la photo : la saturation est passagere, un
+      // nouvel essai quelques secondes plus tard aboutit souvent.
+      lastImage && !busy && /* @__PURE__ */ React.createElement("button", {
+        className: "btn btn-ghost btn-sm btn-block",
+        style: { marginTop: 10 },
+        onClick: () => envoyer(lastImage)
+      }, "R\u00E9essayer avec la m\u00EAme photo"),
+      lastImage && !busy && /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 11.5, lineHeight: 1.5, marginTop: 8 } },
+        "Si \u00E7a bloque, tu peux logger le repas \u00E0 la main via Recherche, ou r\u00E9essayer dans quelques minutes."
+      )
+    ),
     busy && /* @__PURE__ */ React.createElement("div", { className: "text-faint", style: { fontSize: 12, marginTop: 12 } },
       "Cela prend quelques secondes\u2026"
     ),
